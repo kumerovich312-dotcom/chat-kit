@@ -5,3 +5,6 @@ dist/
 !.env.example
 *.log
 .DS_Store
+# Файлы демо-страницы собираются скриптом scripts/demo-assets.mjs
+demo/public/files/
+*.tgz

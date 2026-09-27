@@ -12,3 +12,4 @@ export * from "./markup.js";
 export * from "./text.js";
 export * from "./time.js";
 export * from "./links.js";
+export * from "./composer.js";
