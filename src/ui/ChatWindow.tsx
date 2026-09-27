@@ -4,6 +4,7 @@ import type { Assessment, Assignee, BotState, DialogStatus, Presence } from "../
 import type { ChatMessage } from "../core/model.js";
 import { fromHuman } from "../core/model.js";
 import { defineProfile, type ChatProfile } from "../core/profile.js";
+import { snoozeChoices } from "../core/team.js";
 import { dayLabel, fmtClock } from "../core/time.js";
 import { BotControls, BotFeedback, BotMemory, TeachExample, type MemoryFact, type Rating } from "./Bot.js";
 import { ChatFind } from "./ChatFind.js";
@@ -15,7 +16,7 @@ import { DialogList, type DialogListProps, type LinkLike } from "./DialogList.js
 import { ThreadFilter } from "./Filter.js";
 import { ClientGallery, type GalleryFile } from "./Gallery.js";
 import { PendingBubbles, PendingProvider } from "./Pending.js";
-import { DialogStrip, type SnoozeChoice } from "./Strip.js";
+import { DialogStrip } from "./Strip.js";
 import { SummaryBar } from "./Summary.js";
 import { WaitBar } from "./Wait.js";
 
@@ -71,8 +72,8 @@ export type ChatWindowDialog = {
   managers?: readonly Assignee[] | undefined;
   assessment?: Assessment | null | undefined;
   presence?: readonly Presence[] | undefined;
-  /** Варианты «отложить до» (team.ts: snoozeChoices по поясу компании) */
-  snoozeChoices?: readonly SnoozeChoice[] | undefined;
+  /** Варианты «отложить до»; не заданы — по поясу компании (ядро: snoozeChoices) */
+  snoozeChoices?: readonly { label: string; until: string; hint?: string | undefined }[] | undefined;
   statusAction?: FormAction | undefined;
   tagsAction?: FormAction | undefined;
   assignAction?: FormAction | undefined;
@@ -206,7 +207,7 @@ export function ChatWindow({ list, dialog, side, profile, meId: me, picked = fal
                 assignee={fe.assignee ? dialog.assignee : null} managers={dialog.managers}
                 assessment={fe.assessment ? dialog.assessment : null}
                 presence={fe.presence ? dialog.presence : undefined}
-                snoozeChoices={dialog.snoozeChoices}
+                snoozeChoices={dialog.snoozeChoices ?? snoozeChoices(at, tz)}
                 actions={{
                   status: fe.statuses ? dialog.statusAction : undefined,
                   tags: fe.tags ? dialog.tagsAction : undefined,

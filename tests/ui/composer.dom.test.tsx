@@ -69,14 +69,14 @@ describe("Composer", () => {
 
   it("ответ на письмо — сразу вкладка «Письмо» с темой «Re: …»; Enter — новая строка, Ctrl+Enter — отправить", async () => {
     const sent: FormData[] = [];
-    setup(async (fd) => { sent.push(fd); }, { emailTo: "client@example.kg", replySubject: "Вопрос по визе" });
-    expect((screen.getByLabelText("Тема письма") as HTMLInputElement).value).toBe("Re: Вопрос по визе");
+    setup(async (fd) => { sent.push(fd); }, { emailTo: "client@example.kg", replySubject: "Вопрос по записи" });
+    expect((screen.getByLabelText("Тема письма") as HTMLInputElement).value).toBe("Re: Вопрос по записи");
     const area = screen.getByLabelText("Текст письма");
     fireEvent.change(area, { target: { value: "Добрый день!" } });
     await act(async () => { fireEvent.keyDown(area, { key: "Enter" }); });
     expect(sent).toHaveLength(0);
     await act(async () => { fireEvent.keyDown(area, { key: "Enter", ctrlKey: true }); });
-    expect(readComposerForm(sent[0]!)).toMatchObject({ mode: "email", channel: "email", subject: "Re: Вопрос по визе", text: "Добрый день!" });
+    expect(readComposerForm(sent[0]!)).toMatchObject({ mode: "email", channel: "email", subject: "Re: Вопрос по записи", text: "Добрый день!" });
   });
 
   it("шаблон подставляется в поле; разделы шаблонов подписаны", () => {

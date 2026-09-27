@@ -47,10 +47,10 @@ describe("parseRich — разметка для окна переписки", ()
 });
 
 describe("formatForChannel — ответ бота под канал", () => {
-  const answer = "## Документы\n* паспорт\n* **справка** о несудимости\nПодробнее: [каталог](https://example.kg/c)";
+  const answer = "## Документы\n* паспорт\n* **справка** о здоровье\nПодробнее: [каталог](https://example.kg/c)";
 
   it("WhatsApp: *жирный*, пункты через «-», ссылка «подпись (адрес)»", () => {
-    expect(formatForChannel(answer, "whatsapp")).toBe("*Документы*\n- паспорт\n- *справка* о несудимости\nПодробнее: каталог (https://example.kg/c)");
+    expect(formatForChannel(answer, "whatsapp")).toBe("*Документы*\n- паспорт\n- *справка* о здоровье\nПодробнее: каталог (https://example.kg/c)");
     expect(formatForChannel("*курсив* и `код`", "whatsapp")).toBe("_курсив_ и `код`");
   });
 
@@ -62,6 +62,6 @@ describe("formatForChannel — ответ бота под канал", () => {
   });
 
   it("остальные каналы — чистый текст", () => {
-    expect(formatForChannel(answer, "plain")).toBe("Документы\n- паспорт\n- справка о несудимости\nПодробнее: каталог (https://example.kg/c)");
+    expect(formatForChannel(answer, "plain")).toBe("Документы\n- паспорт\n- справка о здоровье\nПодробнее: каталог (https://example.kg/c)");
   });
 });

@@ -74,7 +74,7 @@ describe("поиск и слова", () => {
     expect(foldYo("Алёна")).toBe("Алена");
     expect(searchWords("  №2411-К   Алёна ")).toEqual(["2411-К", "Алена"]);
     expect(textMatches("Паспорт получила Алёна", "алена паспорт")).toBe(true);
-    expect(textMatches("Паспорт готов", "виза")).toBe(false);
+    expect(textMatches("Паспорт готов", "договор")).toBe(false);
   });
   it("числа и инициалы", () => {
     expect([plural(1, "а", "б", "в"), plural(3, "а", "б", "в"), plural(11, "а", "б", "в"), plural(22, "а", "б", "в")]).toEqual(["а", "б", "в", "б"]);

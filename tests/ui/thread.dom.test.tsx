@@ -12,7 +12,7 @@ const TZ = "Asia/Bishkek";
 const NOW = Date.parse("2026-09-27T10:00:00Z");
 const base = { channel: "whatsapp", kind: "message" as const };
 const list: ChatMessage[] = [
-  { ...base, id: "1", at: "2026-09-27T08:05:09.000Z", author: { type: "client" }, text: "Есть работа?" },
+  { ...base, id: "1", at: "2026-09-27T08:05:09.000Z", author: { type: "client" }, text: "Можно записаться?" },
   { ...base, id: "2", at: "2026-09-27T08:05:40.000Z", author: { type: "bot" }, text: "Да, **есть**", handoff: true },
   { ...base, id: "3", at: "2026-09-27T08:06:00.000Z", author: { type: "operator_phone" }, text: "Перезвоню" },
   { ...base, id: "4", at: "2026-09-27T08:07:00.000Z", author: { type: "operator_crm", name: "Нургуль", id: "7" }, text: "Отправила", delivery: "failed", deliveryError: "номер недоступен" },

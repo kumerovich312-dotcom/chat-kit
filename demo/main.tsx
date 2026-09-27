@@ -3,12 +3,12 @@ import { createRoot } from "react-dom/client";
 import "../src/ui/styles.css";
 import "./demo.css";
 import {
-  defineProfile, fileWords, fromClient, NOUNS, plural, profileCss, readActionForm, readComposerForm, sortMessages, textMatches, waitKey, waitSince,
+  defineProfile, effectiveStatus, fileWords, fromClient, NOUNS, plural, profileCss, readActionForm, readComposerForm, sortMessages, textMatches, waitKey, waitSince,
   type AiAnswer, type Assignee, type BotState, type ChatMessage, type DialogStatus, type DialogSummary, type Presence,
 } from "../src/core/index.js";
 import {
   ChatWindow, NotifyToggle, WaitAlerts,
-  type LinkLike, type ListFilter, type ListLinkOver, type ListStatus, type MemoryFact, type Rating, type SnoozeChoice, type ViewFile, type WaitEpisode,
+  type LinkLike, type ListFilter, type ListLinkOver, type ListStatus, type MemoryFact, type Rating, type ViewFile, type WaitEpisode,
 } from "../src/ui/index.js";
 import { CONTACTS, MANAGERS, ME, MEMORY, OLDER, PROFILE, PROJECT_FILES, suggestReply, TEMPLATES, THREADS, TRANSCRIPTS, TZ, type DemoContact } from "./data.js";
 
@@ -40,21 +40,6 @@ function readUrl() {
     q: sp.get("q") ?? "",
     n: Number(sp.get("n") ?? 7) || 7,
   };
-}
-
-/** «Отложить до» по поясу компании — в проекте это даст ядро (team.ts: snoozeChoices) */
-function snoozeChoices(now: number): SnoozeChoice[] {
-  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-  const parts = Object.fromEntries(fmt.formatToParts(new Date(now)).map((p) => [p.type, p.value]));
-  const offset = Date.parse(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:00Z`) - Math.floor(now / 60_000) * 60_000;
-  const local = (days: number, h: number) => new Date(Date.parse(`${parts.year}-${parts.month}-${parts.day}T00:00:00Z`) + days * 86_400_000 + h * 3_600_000 - offset).toISOString();
-  const out: SnoozeChoice[] = [
-    { label: "На 1 час", until: new Date(now + 3_600_000).toISOString() },
-    { label: "На 3 часа", until: new Date(now + 3 * 3_600_000).toISOString() },
-  ];
-  if (Number(parts.hour) < 18) out.push({ label: "До вечера (18:00)", until: local(0, 18) });
-  out.push({ label: "Завтра утром (9:00)", until: local(1, 9) }, { label: "Через неделю", until: local(7, 9) });
-  return out;
 }
 
 /** «Кратко» понарошку: в проекте это делает «розетка ИИ» (Claude) */
@@ -130,13 +115,11 @@ function App() {
     ? { ...m, attachments: m.attachments.map((a) => (versions[a.id] ? { ...a, version: `r${versions[a.id]}` } : a)) }
     : m)), [versions]);
 
-  // Отложенный диалог сам открывается, когда пришло время или клиент написал (в проекте — ядро team.ts)
-  const statusOf = (c: DemoContact): DialogStatus => {
-    if (c.status === "snoozed" && c.snoozedUntil && Date.parse(c.snoozedUntil) <= now) return "open";
-    const lastIn = (threads[c.id] ?? []).filter((m) => fromClient(m)).at(-1);
-    if (c.status !== "open" && lastIn && Date.parse(lastIn.at) > Date.parse(c.statusAt)) return "open";
-    return c.status;
-  };
+  // Отложенный диалог сам открывается, когда пришло время или клиент написал (правило ядра)
+  const statusOf = (c: DemoContact): DialogStatus => effectiveStatus(
+    { status: c.status, statusAt: c.statusAt, snoozedUntil: c.snoozedUntil ?? null },
+    { now, lastClientAt: (threads[c.id] ?? []).filter((m) => fromClient(m)).at(-1)?.at ?? null },
+  );
 
   // Строки списка: последнее сообщение, «ждёт ответа», непрочитанные — по правилам ядра
   const all: DialogSummary[] = useMemo(() => contacts.map((c) => {
@@ -418,7 +401,6 @@ function App() {
             managers: MANAGERS as Assignee[],
             assessment: active.assessment ?? null,
             presence: presence[active.id] ?? [],
-            snoozeChoices: snoozeChoices(now),
             statusAction, tagsAction, assignAction,
             summaryAction, transcribeAction, improveAction,
             onAction,

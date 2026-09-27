@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import type { Assessment, Assignee, DialogStatus, Presence } from "../core/conversation.js";
 import { DEFAULT_TEXTS, fill, type ProfileTag, type Texts } from "../core/profile.js";
-import { untilText } from "../core/time.js";
+import { activePresence, presenceText, untilLabel } from "../core/team.js";
 import { ChevronIcon, CloseIcon, EyeIcon, PencilIcon, PlusIcon, TagIcon, UserIcon } from "./icons.js";
 
 /* Полоса под шапкой диалога (выбор пользователя 27.09.2026): слева — метки, дальше — оценка ИИ («срочно», «недоволен»)
@@ -14,8 +14,6 @@ import { ChevronIcon, CloseIcon, EyeIcon, PencilIcon, PlusIcon, TagIcon, UserIco
    assign: user_id — ответственный (пусто — снять). */
 
 type FormAction = (form: FormData) => void | Promise<void>;
-
-export type SnoozeChoice = { label: string; until: string };
 
 export type StripProps = {
   status?: DialogStatus | undefined;
@@ -29,8 +27,8 @@ export type StripProps = {
   assessment?: Assessment | null | undefined;
   presence?: readonly Presence[] | undefined;
   meId?: string | null | undefined;
-  /** Варианты «отложить до» — по поясу компании (team.ts: snoozeChoices) */
-  snoozeChoices?: readonly SnoozeChoice[] | undefined;
+  /** Варианты «отложить до» — по поясу компании (ядро: snoozeChoices) */
+  snoozeChoices?: readonly { label: string; until: string; hint?: string | undefined }[] | undefined;
   actions?: { status?: FormAction | undefined; tags?: FormAction | undefined; assign?: FormAction | undefined } | undefined;
   t?: Texts | undefined;
   timeZone?: string | undefined;
@@ -39,15 +37,11 @@ export type StripProps = {
   extra?: ReactNode;
 };
 
-/** Кто из коллег сейчас в диалоге: пишет ответ — важнее, чем просто смотрит. Старше минуты — не показываем */
+/** Кто из коллег сейчас в диалоге (правила ядра: себя и устаревшее не показываем, пишет — важнее, чем смотрит) */
 export function presenceLine(list: readonly Presence[], meId: string | null | undefined, now: number): { typing: boolean; text: string } | null {
-  const fresh = list.filter((p) => p.userId !== meId && now - Date.parse(p.at) < 60_000);
-  const names = (xs: Presence[]) => [...new Set(xs.map((p) => p.name))];
-  const typing = names(fresh.filter((p) => p.state === "typing"));
-  if (typing.length) return { typing: true, text: `${typing.join(" и ")} ${typing.length > 1 ? "пишут" : "пишет"} ответ…` };
-  const viewing = names(fresh.filter((p) => p.state === "viewing"));
-  if (viewing.length) return { typing: false, text: `${viewing.join(" и ")} ${viewing.length > 1 ? "смотрят" : "смотрит"} этот диалог` };
-  return null;
+  const active = activePresence(list, { now, meId });
+  const text = presenceText(active);
+  return text ? { typing: active.some((p) => p.state === "typing"), text } : null;
 }
 
 /** Меню-всплывашка: закрывается щелчком мимо и Esc */
@@ -113,7 +107,7 @@ export function DialogStrip(p: StripProps) {
   };
 
   const statusLabel = status.s === "closed" ? t.statusClosed
-    : status.s === "snoozed" ? (status.until ? fill(t.statusSnoozedUntil, { until: `до ${untilText(status.until, p.timeZone, now)}` }) : t.statusSnoozed)
+    : status.s === "snoozed" ? (status.until ? fill(t.statusSnoozedUntil, { until: untilLabel(status.until, now, p.timeZone) }) : t.statusSnoozed)
     : t.statusOpen;
 
   return (
@@ -193,7 +187,10 @@ export function DialogStrip(p: StripProps) {
                   <>
                     <div className="ck-pop__head ck-pop__sep">{t.snooze}</div>
                     {p.snoozeChoices!.map((c) => (
-                      <button key={c.until} type="button" className="ck-pop__item" onClick={() => setDialogStatus("snoozed", c.until)}>{c.label}</button>
+                      <button key={c.until} type="button" className="ck-pop__item" onClick={() => setDialogStatus("snoozed", c.until)}>
+                        <span className="ck-pop__title">{c.label}</span>
+                        {c.hint ? <span className="ck-pop__sub">{c.hint}</span> : null}
+                      </button>
                     ))}
                   </>
                 ) : null}
