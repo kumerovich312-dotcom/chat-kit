@@ -209,7 +209,7 @@ function Row({ d, active, p, t, now, L }: { d: DialogSummary; active: boolean; p
           {last ? (
             <>
               {prefix ? <span className={author?.type === "bot" ? "ck-row__who--bot" : undefined}>{prefix}</span> : null}
-              {stripRich(last.text, "markdown")}
+              {stripRich(last.text.slice(0, 400), "markdown")}
             </>
           ) : "—"}
         </span>

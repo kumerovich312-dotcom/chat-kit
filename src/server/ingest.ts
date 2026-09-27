@@ -178,7 +178,7 @@ async function attachFile(
     if (!got.ok) { reason = got.reason; continue; }
     const name = f.caption?.trim() || fileWords({ mime: got.mime, name: "" });
     const saved = await store.saveFile(contactId, {
-      data: got.data, mime: got.mime, ext: got.ext, name, sha1: sha1Hex(got.data), sha256: sha256Hex(got.data), sourceUrl: url, fromClient,
+      data: got.data, mime: got.mime, ext: got.ext, name, sha1: sha1Hex(got.data), sha256: sha256Hex(got.data), sourceUrl: url.startsWith("data:") ? null : url, fromClient,
     });
     await store.saveMessage(contactId, {
       kind: "message", author: m.author, channel: hint.channel, text: f.caption?.trim() || name, at: new Date(atMs).toISOString(),
@@ -222,7 +222,7 @@ async function saveCall(
         if (!got.ok) continue;
         const file = await store.saveFile(contactId, {
           data: got.data, mime: got.mime, ext: got.ext, name: record.caption?.trim() || "Запись разговора", sha1: sha1Hex(got.data),
-          sha256: sha256Hex(got.data), sourceUrl: url, fromClient: c.direction === "in",
+          sha256: sha256Hex(got.data), sourceUrl: url.startsWith("data:") ? null : url, fromClient: c.direction === "in",
         });
         if (store.updateMessage) await store.updateMessage({ id: saved.id }, { fileId: file.fileId });
         else {

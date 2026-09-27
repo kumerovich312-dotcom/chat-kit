@@ -6,7 +6,8 @@
   "license": "UNLICENSED",
   "type": "module",
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./dist/widget/chat-widget.js"
   ],
   "exports": {
     ".": {
@@ -45,6 +46,18 @@
       "types": "./dist/channels/calls/index.d.ts",
       "default": "./dist/channels/calls/index.js"
     },
+    "./email": {
+      "types": "./dist/channels/email/index.d.ts",
+      "default": "./dist/channels/email/index.js"
+    },
+    "./site": {
+      "types": "./dist/channels/site/index.d.ts",
+      "default": "./dist/channels/site/index.js"
+    },
+    "./widget": {
+      "types": "./dist/widget/chat-widget.d.ts",
+      "default": "./dist/widget/chat-widget.js"
+    },
     "./ai": {
       "types": "./dist/ai/index.d.ts",
       "default": "./dist/ai/index.js"
@@ -54,6 +67,7 @@
   },
   "files": [
     "dist",
+    "docs",
     "README.md",
     "CHANGELOG.md"
   ],

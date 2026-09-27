@@ -36,6 +36,10 @@ describe("выпуск", () => {
     expect(typeof (await load("channels/green-api/index.js")).createGreenApiAdapter).toBe("function");
     expect(typeof (await load("channels/calls/index.js")).createCallsAdapter).toBe("function");
     expect(typeof (await load("ai/index.js")).createClaudeAi).toBe("function");
+    expect(typeof (await load("channels/email/index.js")).createEmailAdapter).toBe("function");
+    expect(typeof (await load("channels/site/index.js")).handleSiteRequest).toBe("function");
+    // Виджет для сайта — один файл без import: его отдают как есть
+    expect(readFileSync(join(root, "dist", "widget", "chat-widget.js"), "utf8")).not.toMatch(/^\s*import\s|\bfrom\s+["']/m);
     expect(typeof core.defineProfile).toBe("function");
     expect(existsSync(join(root, "dist", "ui", "styles.css"))).toBe(true);
     expect(readFileSync(join(root, "dist", "ui", "Composer.js"), "utf8").startsWith('"use client"')).toBe(true);

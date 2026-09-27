@@ -6,7 +6,14 @@
 
    В окне переписки текст показывается с разметкой, но без вставки HTML: parseRich даёт дерево, окно рисует его своими
    элементами (набор никогда не вставляет присланный текст как HTML — так требует безопасность студии).
-   Диалект «whatsapp» — для сообщений клиента из WhatsApp: *так* там жирный, как видит менеджер у себя в телефоне. */
+   Диалект «whatsapp» — для сообщений клиента из WhatsApp: *так* там жирный, как видит менеджер у себя в телефоне.
+
+   Скорость: текст пишет клиент, значит, в нём может быть что угодно (тысячи звёздочек, адресов, пробелов). Разбор идёт
+   одним проходом: каждое правило ищет вперёд от текущего места и помнит найденное, пока до него не дошли, — без
+   повторного просмотра всего текста на каждом шаге. Очень длинный текст (больше RICH_MAX) показывается без разметки. */
+
+/** Длиннее этого текст показывается как есть, без разметки */
+export const RICH_MAX = 20_000;
 
 export type RichNode =
   | { t: "text"; v: string }
@@ -31,7 +38,7 @@ const RULES: Rule[] = [
   { re: /```\n?([\s\S]+?)\n?```/, make: (m) => whole(m, { t: "code", v: m[1] ?? "", block: true }) },
   { re: /`([^`\n]+)`/, make: (m) => whole(m, { t: "code", v: m[1] ?? "", block: false }) },
   { re: /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/, make: (m, d) => whole(m, { t: "link", href: m[2] ?? "", c: parseRich(m[1] ?? "", d) }) },
-  { re: /https?:\/\/[^\s<>"'«»]+/, make: (m) => url(m[0]) },
+  { re: /https?:\/\/[^\s<>"'«»]{1,2048}/, make: (m) => url(m[0]) },
   { re: /(\*\*|__)(?=\S)([^\n]*?\S)\1/, make: (m, d) => whole(m, { t: "b", c: parseRich(m[2] ?? "", d) }) },
   { re: /~~(?=\S)([^\n]*?\S)~~/, make: (m, d) => whole(m, { t: "s", c: parseRich(m[1] ?? "", d) }) },
   { re: single("*"), make: (m, d) => whole(m, { t: d === "whatsapp" ? "b" : "i", c: parseRich(m[1] ?? "", d) }) },
@@ -52,28 +59,36 @@ function url(raw: string): { node: RichNode; len: number } | null {
 
 /** Текст → дерево разметки. Раньше начавшееся выделение главнее; при одном начале — более длинное (** раньше *) */
 export function parseRich(text: string, dialect: Dialect = "markdown"): RichNode[] {
+  if (text.length > RICH_MAX) return text ? [{ t: "text", v: text }] : [];
   const out: RichNode[] = [];
-  let rest = text;
-  while (rest) {
+  // У каждого правила — своя копия выражения с флагом g и последнее найденное: null — дальше совпадений нет
+  const scan = RULES.map((rule) => ({ rule, re: new RegExp(rule.re.source, `${rule.re.flags}g`), m: undefined as RegExpExecArray | null | undefined }));
+  let pos = 0;
+  while (pos < text.length) {
     let best: { m: RegExpExecArray; rule: Rule } | null = null;
-    for (const rule of RULES) {
-      const m = rule.re.exec(rest);
-      if (!m) continue;
-      if (!best || m.index < best.m.index || (m.index === best.m.index && m[0].length > best.m[0].length)) best = { m, rule };
+    for (const r of scan) {
+      if (r.m === null) continue;
+      if (r.m === undefined || r.m.index < pos) {
+        r.re.lastIndex = pos;
+        r.m = r.re.exec(text);
+        if (!r.m) { r.m = null; continue; }
+      }
+      const m = r.m;
+      if (!best || m.index < best.m.index || (m.index === best.m.index && m[0].length > best.m[0].length)) best = { m, rule: r.rule };
     }
     if (!best) break;
     const made = best.rule.make(best.m, dialect);
     if (!made) {
       // Похоже на разметку, но в этом диалекте не она — знак остаётся текстом, ищем дальше
-      push(out, rest.slice(0, best.m.index + 1));
-      rest = rest.slice(best.m.index + 1);
+      push(out, text.slice(pos, best.m.index + 1));
+      pos = best.m.index + 1;
       continue;
     }
-    push(out, rest.slice(0, best.m.index));
+    push(out, text.slice(pos, best.m.index));
     out.push(made.node);
-    rest = rest.slice(best.m.index + made.len);
+    pos = best.m.index + made.len;
   }
-  push(out, rest);
+  push(out, text.slice(pos));
   return out;
 }
 
@@ -84,15 +99,28 @@ function push(out: RichNode[], v: string) {
   else out.push({ t: "text", v });
 }
 
+/** «# Заголовок ##» → «Заголовок»; не заголовок — null. Без регулярки с возвратами: строку пишет клиент */
+function heading(line: string): string | null {
+  const h = /^\s{0,3}#{1,6}\s+/.exec(line);
+  if (!h) return null;
+  let t = line.slice(h[0].length).trimEnd();
+  let end = t.length;
+  while (end > 0 && t[end - 1] === "#") end--;
+  // Решётки в конце — украшение заголовка, только если перед ними пробел («# C#» — это «C#»)
+  if (end < t.length && (end === 0 || /\s/.test(t[end - 1] ?? ""))) t = t.slice(0, end).trimEnd();
+  return t || null;
+}
+
 /** Строки Markdown, которых нет в мессенджерах: «# Заголовок» → жирная строка, «* пункт» → «- пункт»
  *  (звёздочка в начале строки в WhatsApp выглядела бы как начало жирного) */
 function blocks(text: string): string {
+  if (text.length > RICH_MAX) return text;
   return text
     .replace(/\r\n?/g, "\n")
     .split("\n")
     .map((line) => {
-      const h = line.match(/^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/);
-      if (h) return `**${h[1]}**`;
+      const h = heading(line);
+      if (h) return `**${h}**`;
       return line.replace(/^(\s*)[*•]\s+/, "$1- ");
     })
     .join("\n");

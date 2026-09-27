@@ -65,3 +65,26 @@ describe("formatForChannel — ответ бота под канал", () => {
     expect(formatForChannel(answer, "plain")).toBe("Документы\n- паспорт\n- справка о здоровье\nПодробнее: каталог (https://example.kg/c)");
   });
 });
+
+describe("разметка — быстро на любом тексте (текст пишет клиент)", () => {
+  const fast = (fn: () => unknown, ms = 300) => {
+    const t0 = performance.now();
+    fn();
+    expect(performance.now() - t0).toBeLessThan(ms);
+  };
+  it("заголовок с тысячами пробелов, тысячи звёздочек, адресов и кавычек — меньше трети секунды", () => {
+    fast(() => stripRich(`# a${" ".repeat(5000)}b`));
+    fast(() => stripRich("**a".repeat(10_000)));
+    fast(() => parseRich("http://a.b ".repeat(10_000)));
+    fast(() => parseRich("*a ".repeat(10_000)));
+    fast(() => parseRich("_x".repeat(10_000), "whatsapp"));
+    fast(() => parseRich("`".repeat(19_000)));
+    fast(() => formatForChannel(`## ${"#".repeat(3000)} ${"x ".repeat(3000)}`, "telegram"));
+  });
+  it("заголовок: решётки в конце — украшение, «C#» — нет; слишком длинный текст — без разметки", () => {
+    expect(formatForChannel("# Итоги ##", "plain")).toBe("Итоги");
+    expect(formatForChannel("# C#", "plain")).toBe("C#");
+    const long = "*a* ".repeat(6000);
+    expect(parseRich(long)).toEqual([{ t: "text", v: long }]);
+  });
+});
