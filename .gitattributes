@@ -1,0 +1,11 @@
+# Набор ставится в проекты на Linux-серверах и собирается на двух компьютерах с Windows:
+# в репозитории и в выпусках — всегда перевод строки LF, иначе файлы «меняются» от компьютера к компьютеру
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.ogg binary
+*.pdf binary
+*.tgz binary
