@@ -10,13 +10,13 @@ import { bearerKey } from "../server/request.js";
    Шлюз передаёт сообщения не по сети, а через общую с кабинетом базу:
    - входящее и ответ с телефона клиники шлюз сам пишет в dialogs / messages (повтор отсекает по wa_message_id), файлы
      кладёт в uploads, а кабинету шлёт только «пациент написал»: POST /api/internal/events, «Authorization: Bearer
-     <WA_GATEWAY_TOKEN>», тело { event: "message_in", org_id, dialog_id }. Здесь это событие «обновить экраны»;
+     <общий токен>», тело { event: "message_in", org_id, dialog_id }. Здесь это событие «обновить экраны»;
    - исходящее кабинет кладёт в очередь wa_outbox — шлюз раз в 1,5 с забирает и отправляет (адрес «nb:<диалог>» — через
      Nextbot). Кладёт строку переходник проекта (enqueue): набор о таблицах TishCRM не знает;
    - доставку и прочтение шлюз сам пишет в messages.delivery.
-   По сети шлюз умеет только управление: POST /connect, /disconnect, /nextbot-test с тем же токеном (порт WA_GATEWAY_PORT,
-   по умолчанию 3010). Пауза ИИ-ответа — статус диалога «operator» в базе (шлюз не отвечает такому диалогу): его ставит
-   проект (setMode). Секреты (токен, адрес) — только из окружения проекта. */
+   По сети шлюз умеет только управление: POST /connect, /disconnect, /nextbot-test с тем же токеном. Пауза ИИ-ответа —
+   статус диалога «operator» в базе (шлюз не отвечает такому диалогу): его ставит проект (setMode). Секреты (токен,
+   адрес) — только из окружения проекта. */
 
 /** Строка очереди исходящих шлюза (у TishCRM — таблица wa_outbox) */
 export type WaOutboxRow = {
@@ -32,9 +32,9 @@ export type WaOutboxRow = {
 export type WaMediaType = "image" | "video" | "audio" | "voice" | "document";
 
 export type WaGatewayOptions = {
-  /** Адрес шлюза (WA_GATEWAY_URL), например http://wa:3010 */
+  /** Адрес шлюза внутри сервера проекта — из окружения проекта */
   url: string;
-  /** Общий токен шлюза и кабинета (WA_GATEWAY_TOKEN) */
+  /** Общий токен шлюза и кабинета — из окружения проекта */
   token: string;
   /** Клиника */
   orgId: string | number;
@@ -116,7 +116,7 @@ export function createWaGatewayAdapter(o: WaGatewayOptions): WaGatewayAdapter {
         body: JSON.stringify({ orgId: o.orgId, ...body }), signal: ctrl.signal, cache: "no-store",
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (res.status === 401) return { ok: false, error: "Шлюз не принял токен: проверьте WA_GATEWAY_TOKEN у кабинета и шлюза" };
+      if (res.status === 401) return { ok: false, error: "Шлюз не принял токен: у кабинета и шлюза должен быть один и тот же токен" };
       if (!res.ok || data.ok === false) return { ok: false, error: data.error ? `Шлюз: ${data.error}` : `Шлюз ответил ${res.status}`, retryable: res.status >= 500 };
       return { ok: true };
     } catch {

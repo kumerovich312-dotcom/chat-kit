@@ -5,9 +5,9 @@
 ## Атлас CRM — `C:\Users\user\projects\atlas-crm`, ветка main (77becff)
 
 Стек: Next.js 15.5 (App Router, server actions) + React 19.0 + Tailwind 3 + TypeScript strict, сырой SQL через `pg` / PGlite
-(`src/lib/db.ts`: `q`, `one`, `tx`). Сервер: `deploy/update.sh` — `git pull --ff-only` + `docker compose up -d --build`;
-в Dockerfile сначала `npm ci` только по package.json + package-lock.json, потом `COPY . .` и `next build`. Node 22 в образе,
-на компьютере Node 24 (проверки читают `.ts` напрямую, без сборки).
+(`src/lib/db.ts`: `q`, `one`, `tx`). Сборка на сервере ставит зависимости по package.json и package-lock.json без доступа
+к другим репозиториям — набор должен скачиваться по открытой ссылке, без ключей. На компьютере Node 24 (проверки читают
+`.ts` напрямую, без сборки).
 
 | Что в Атласе | Что это | Куда в наборе |
 |---|---|---|
@@ -60,18 +60,17 @@
 
 ## TishCRM — шлюз WhatsApp `apps/wa-gateway` (клон 585c30d, только чтение)
 
-Отдельный процесс Node (`npm run wa`), библиотека Baileys, одна сессия WhatsApp на клинику (подключение по QR, как
-WhatsApp Web; ключи сессии — папка `apps/wa-gateway/sessions/org_<id>`). **Сообщения шлюз передаёт не через HTTP, а через
-общую базу Postgres** (переменная `DATABASE_URL`):
+Отдельный процесс Node, библиотека Baileys, одна сессия WhatsApp на клинику (подключение по QR, как WhatsApp Web).
+**Сообщения шлюз передаёт не через HTTP, а через общую с кабинетом базу Postgres:**
 
 - **Входящее** (`messages.upsert`, только личные чаты `@s.whatsapp.net` и `@lid`): повтор отсекается по
   `messages.wa_message_id`; диалог — `dialogs` по `(org_id, wa_jid)`, где `wa_jid` — телефонный адрес, если известен
   (`senderPn` у `@lid`), `wa_alt_jid` — адрес как пришёл; пациент привязывается по последним 9 цифрам телефона;
   файл скачивается сразу в `uploads/org_<id>/wa/<id сообщения>.<расширение>`; строка `messages`: `direction 'in'`,
   `author 'patient'`, `body`, `wa_message_id`, `wa_remote_jid`, `media_type` (image / video / sticker / audio / voice /
-  document), `media_path`, `media_mime`, `media_name`. Потом шлюз зовёт кабинет: `POST <APP_INTERNAL_URL>/api/internal/events`
-  с `Authorization: Bearer <WA_GATEWAY_TOKEN>` и телом `{ event: "message_in", org_id, dialog_id }` — только «пациент
-  написал», сам текст уже в базе.
+  document), `media_path`, `media_mime`, `media_name`. Потом шлюз зовёт кабинет: `POST /api/internal/events`
+  с общим токеном шлюза и кабинета и телом `{ event: "message_in", org_id, dialog_id }` — только «пациент написал»,
+  сам текст уже в базе.
 - **Сообщение с телефона клиники** (`fromMe`): `author 'phone'`, `delivery 'sent'`; эхо сообщения, отправленного из CRM,
   узнаётся по тексту за 2 минуты у строки с пустым `wa_message_id` — дубля нет.
 - **Исходящее из CRM:** CRM кладёт строку в таблицу-очередь `wa_outbox` (`org_id, wa_jid, body, media_path, media_type,
@@ -85,8 +84,7 @@ WhatsApp Web; ключи сессии — папка `apps/wa-gateway/sessions/o
   при `operator` ИИ молчит («пауза»); ИИ может передать диалог оператору (`handover`) и создать запись на приём.
   Автор ответа ИИ — `author 'ai'`. Сотрудник из CRM — `author 'operator:<имя>'`.
 - **Напоминания о визите** за 24 часа — через ту же очередь.
-- **HTTP-API шлюза — только управление** (порт `WA_GATEWAY_PORT`, по умолчанию 3010; `Authorization: Bearer
-  <WA_GATEWAY_TOKEN>`, иначе 401): `POST /connect {orgId}` — начать подключение (QR появляется в таблице
+- **HTTP-API шлюза — только управление** (тот же общий токен, иначе 401): `POST /connect {orgId}` — начать подключение (QR появляется в таблице
   `wa_sessions`: `status` waiting_qr / connected / disconnected, `qr`, `wa_number`), `POST /disconnect {orgId}`,
   `POST /nextbot-test {orgId, dialogId, text}`. Отдельной команды «отправить» по HTTP нет — только очередь в базе.
 
@@ -96,7 +94,7 @@ WhatsApp Web; ключи сессии — папка `apps/wa-gateway/sessions/o
 ## TishCRM — сторона CRM (клон 585c30d, только чтение)
 
 - **Стек:** Next.js 15.5, React 19.0, Tailwind 3.4, сырой SQL через `pg` (`src/lib/db.ts`: `q`, `one`, `tx`), схема —
-  идемпотентный `scripts/schema.sql` + `scripts/migrations`. Порты: кабинет 3002, база 5544, шлюз 3010. Тесты — vitest
+  идемпотентный `scripts/schema.sql` + `scripts/migrations`. Тесты — vitest
   (`src/**/*.test.ts`, только чистые функции). Правила проекта: после правки — `npm run build` и перезапуск (не `npm run dev`),
   логика — в `src/lib`, пояснения — только под «?».
 - **«Входящие»** (`src/app/(crm)/inbox/page.tsx` + один клиентский `inbox-app.tsx` на 511 строк): 100 последних диалогов без
@@ -107,23 +105,22 @@ WhatsApp Web; ключи сессии — папка `apps/wa-gateway/sessions/o
   (`/api/inbox/state`), значок меню — каждые 5 с; звук и окошки — общий `NotifyProvider` (опрос раз в 12 с).
 - **Ошибки, которые набор закрывает:** лента берёт 500 САМЫХ СТАРЫХ сообщений (`ORDER BY created_at LIMIT 500`) — у длинных
   диалогов пропадают новые; порядок без запасного ключа `id`; `delivery = ''` — «часики» навсегда; сбой отправки через QR
-  сотрудник не видит; автор `auto:<имя>` показан как есть; телефоны во «Входящих» не скрыты по правам; файлы отдаются без
-  докачки кусками (Range) — перемотка голосового не работает.
+  сотрудник не видит; автор `auto:<имя>` показан как есть; файлы отдаются без докачки кусками (Range) — перемотка
+  голосового не работает.
 - **Данные:** `dialogs` (`org_id, wa_jid` — он же адрес доставки, `wa_alt_jid, display_name, patient_id, status, channel,
   handle, unread, read_pending, last_message_at`), `messages` (`org_id, dialog_id, direction in|out, author` — patient / ai /
   phone / system / `operator:<имя>` / `operator:NextBot` / `auto:<имя>`, `body, wa_message_id` — ключ повтора, уникален при
   непустом, `media_type/path/mime/name, delivery, delivery_error, receipted, created_at`), `wa_outbox`, `wa_sessions`,
-  `nextbot_settings`, `nextbot_events`, `app_secrets`, `notifications`. Изоляция клиник — `AND org_id = $n` в каждом запросе
-  (правило № 1), без RLS. «Ждут ответа» не считается нигде.
+  `nextbot_settings`, `nextbot_events`, `notifications`. Изоляция клиник — `org_id` в каждом запросе (правило № 1
+  проекта) — остаётся в переходнике TishCRM. «Ждут ответа» не считается нигде.
 - **Nextbot в TishCRM** — перенос из Атласа (`src/lib/nextbot.ts`, `nextbot-parse.ts`, `/api/nextbot/events`, диалог
   `wa_jid = "nb:<номер>"`); ответы уходят через очередь шлюза. Файлы Nextbot — подписанной ссылкой `/api/pub/media/<id>`
   (HMAC `media:<id>:<срок>`).
 - **Телефоны:** libphonenumber-js, хранение E.164; сравнение местами по полному номеру, местами по 9 последним цифрам. В
   комментариях: 9 цифр путают номера Казахстана и России (+7 701 123-45-67 и +7 901 123-45-67 дают одни 9 цифр).
-- **Сборка:** Dockerfile ставит зависимости (`npm ci`) по package.json раньше, чем копирует остальной код; сборщик —
-  без секретов. Значит, набор должен скачиваться без ключей (открытый адрес) и без git на сервере. Tailwind проекта
-  (`content: ./src/**`) классы набора не увидит — у набора свои стили. `Permissions-Policy: microphone=()` — запись голоса
-  в браузере запрещена (набору не нужна).
+- **Сборка:** зависимости ставятся по package.json раньше остального кода и без секретов — набор должен скачиваться
+  без ключей (открытый адрес) и без git на сервере. Tailwind проекта (`content: ./src/**`) классы набора не увидит — у
+  набора свои стили. Запись голоса в браузере набору не нужна.
 
 ## Студия — `C:\Users\user\aibots-project` (main 205c3ed; другой чат работает в своей рабочей копии)
 

@@ -17,7 +17,7 @@ function setup(fetchImpl?: typeof fetch) {
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   }) as typeof fetch;
   const adapter = createWaGatewayAdapter({
-    url: "http://127.0.0.1:3010/", token: TOKEN, orgId: 7, fetch: fakeFetch,
+    url: "http://gateway.test/", token: TOKEN, orgId: 7, fetch: fakeFetch,
     enqueue: async (row) => { queue.push(row); },
     setMode: async (_t, mode) => { modes.push(mode); },
   });
@@ -61,7 +61,7 @@ describe("шлюз WhatsApp TishCRM", () => {
     const { adapter, calls } = setup();
     expect(await adapter.connect()).toEqual({ ok: true });
     await adapter.testNextbot("10177", "проверка");
-    expect(calls.map((c) => c.url)).toEqual(["http://127.0.0.1:3010/connect", "http://127.0.0.1:3010/nextbot-test"]);
+    expect(calls.map((c) => c.url)).toEqual(["http://gateway.test/connect", "http://gateway.test/nextbot-test"]);
     expect(calls[0]?.auth).toBe(`Bearer ${TOKEN}`);
     expect(calls[1]?.body).toEqual({ orgId: 7, dialogId: "10177", text: "проверка" });
     const down = setup((async () => { throw new Error("ECONNREFUSED"); }) as typeof fetch);
