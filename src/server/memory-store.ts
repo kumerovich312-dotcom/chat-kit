@@ -5,14 +5,14 @@ import { waitSince } from "../core/waiting.js";
 import type { ChatStore, ContactHint, KeyValue, LiveEvent, MessagePatch, MessageQuery, NewFile, NewMessage, StoredMessage, WaitChange } from "./store.js";
 
 /* Переходник «в памяти» — образец для проектов и основа проверок и демо-страницы. Настоящий проект делает то же самое
-   запросами к своей базе (у Атласа — таблицы clients / messages / files, у TishCRM — dialogs / messages). */
+   запросами к своей базе (например, таблицы clients / messages / files). */
 
 export type MemoryContact = {
   id: string;
   name: string;
   phone: string | null;
   channel: string;
-  /** Адреса у подключений: «nextbot:10177062», «wa-gateway:996…@s.whatsapp.net» */
+  /** Адреса у подключений: «telegram:100000001», «green-api:996555000001@c.us» */
   identities: string[];
   dismissedAt: string | null;
 };
@@ -46,6 +46,14 @@ export function createMemoryStore(opts: { countryCode?: string; fileUrl?: (id: s
   const state: KeyValue = {
     async get(key) { return kv.get(key) ?? null; },
     async set(key, value) { kv.set(key, value); },
+  };
+
+  // Цитата: исходное сообщение по номеру у канала — если оно у нас есть, берём его номер, автора и текст
+  const quoteOf = (q: NonNullable<NewMessage["replyTo"]>): NonNullable<ChatMessage["replyTo"]> => {
+    const orig = q.externalId ? byExternal.get(q.externalId) : q.id ? messages.find((x) => x.id === q.id) : undefined;
+    if (!orig) return q;
+    const a = orig.attachments?.[0];
+    return { id: orig.id, externalId: orig.externalId ?? null, author: orig.author, text: orig.text, ...(a ? { attachment: { name: a.name, mime: a.mime } } : {}) };
   };
 
   const store: MemoryStore = {
@@ -93,7 +101,9 @@ export function createMemoryStore(opts: { countryCode?: string; fileUrl?: (id: s
         ...(m.deliveryError ? { deliveryError: m.deliveryError } : {}),
         ...(m.handoff ? { handoff: true } : {}),
         ...(m.shadow ? { shadow: true } : {}),
-        ...(m.replyTo ? { replyTo: m.replyTo } : {}),
+        ...(m.replyTo ? { replyTo: quoteOf(m.replyTo) } : {}),
+        ...(m.call ? { call: m.call } : {}),
+        ...(m.card ? { card: m.card } : {}),
         ...(file ? { attachments: [{ id: file.id, name: file.name, mime: file.mime, size: file.size, url: fileUrl(file.id) }] } : {}),
       };
       messages.push(msg);

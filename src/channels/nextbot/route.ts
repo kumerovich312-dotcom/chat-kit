@@ -1,7 +1,7 @@
-import { ingest, type IngestHooks } from "../server/ingest.js";
-import { bearerKey, jsonResponse, readWebhook } from "../server/request.js";
-import type { ChannelAdapter } from "../server/channel.js";
-import type { ChatStore } from "../server/store.js";
+import { ingest, type IngestHooks } from "../../server/ingest.js";
+import { bearerKey, jsonResponse, readWebhook } from "../../server/request.js";
+import type { ChannelAdapter } from "../../server/channel.js";
+import type { ChatStore } from "../../server/store.js";
 import { looksLikeNextbotKey } from "./webhook.js";
 
 /* Приём событий Nextbot одной строкой в маршруте проекта:

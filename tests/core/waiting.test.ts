@@ -2,17 +2,18 @@ import { describe, expect, it } from "vitest";
 import type { AuthorType, Delivery, MessageKind } from "../../src/core/model.js";
 import { waitKey, waitSince, waitText, type WaitMessage } from "../../src/core/waiting.js";
 
-// Правило «ждут ответа» — сценарии Атласа (scripts/checks/test-chat.mjs и test-nextbot.mjs) без базы.
+// Правило «ждут ответа» — сценарии без базы.
 
 const T0 = Date.parse("2026-09-27T08:00:00Z");
 const at = (min: number) => new Date(T0 + min * 60_000).toISOString();
-const m = (min: number, author: AuthorType, extra: { kind?: MessageKind; delivery?: Delivery; handoff?: boolean; shadow?: boolean } = {}): WaitMessage => ({
+const m = (min: number, author: AuthorType, extra: { kind?: MessageKind; delivery?: Delivery; handoff?: boolean; shadow?: boolean; missed?: boolean } = {}): WaitMessage => ({
   at: at(min),
   kind: extra.kind ?? "message",
   author: { type: author },
   ...(extra.delivery ? { delivery: extra.delivery } : {}),
   ...(extra.handoff ? { handoff: true } : {}),
   ...(extra.shadow ? { shadow: true } : {}),
+  ...(extra.missed !== undefined ? { call: { missed: extra.missed } } : {}),
 });
 
 describe("waitSince", () => {
@@ -31,10 +32,18 @@ describe("waitSince", () => {
     expect(waitSince([m(0, "client"), m(1, "operator_crm"), m(5, "client"), m(6, "client")])).toBe(at(5));
   });
 
-  it("заметка, служебная строка и звонок — не ответ", () => {
+  it("заметка, служебная строка и звонок без сведений — не ответ", () => {
     expect(waitSince([m(0, "client"), m(1, "operator_crm", { kind: "note" })])).toBe(at(0));
     expect(waitSince([m(0, "client"), m(1, "system", { kind: "system" })])).toBe(at(0));
     expect(waitSince([m(0, "client"), m(1, "operator_crm", { kind: "call" })])).toBe(at(0));
+  });
+
+  it("звонки: разговор — ответ; пропущенный входящий — клиент ждёт; пропущенный исходящий — ничего не меняет", () => {
+    expect(waitSince([m(0, "client"), m(1, "operator_phone", { kind: "call", missed: false })])).toBeNull();
+    expect(waitSince([m(0, "client"), m(1, "client", { kind: "call", missed: false })])).toBeNull();
+    expect(waitSince([m(0, "operator_crm"), m(1, "client", { kind: "call", missed: true })])).toBe(at(1));
+    expect(waitSince([m(0, "client"), m(1, "operator_phone", { kind: "call", missed: true })])).toBe(at(0));
+    expect(waitSince([m(0, "operator_crm"), m(1, "operator_phone", { kind: "call", missed: true })])).toBeNull();
   });
 
   it("недоставленное и черновик теневого режима — не ответ; отправляющееся — ответ", () => {

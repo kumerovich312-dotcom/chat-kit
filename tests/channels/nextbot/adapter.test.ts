@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createNextbotAdapter, DEFAULT_MANAGER_NOTE, handleNextbotRequest, type NextbotSettings } from "../../src/nextbot/index.js";
-import { createMemoryStore, ingest, sha1Hex, type IngestHooks } from "../../src/server/index.js";
-import { bytes, fakeNet } from "../helpers/fake-net.js";
+import { createNextbotAdapter, DEFAULT_MANAGER_NOTE, handleNextbotRequest, type NextbotSettings } from "../../../src/channels/nextbot/index.js";
+import { createMemoryStore, ingest, sha1Hex, type IngestHooks } from "../../../src/server/index.js";
+import { bytes, fakeNet } from "../../helpers/fake-net.js";
 
 // Подключение Nextbot на переходнике «в памяти» и поддельной сети — сценарии проверок Атласа (test-nextbot.mjs).
 // Имена, номера, диалоги и адреса — вымышленные.

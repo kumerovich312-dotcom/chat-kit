@@ -1,9 +1,9 @@
 import { createHmac } from "node:crypto";
-import { AUTHOR_TYPES, type AuthorType, type Delivery } from "../core/model.js";
-import type { BotCommand, ControlMode } from "../core/conversation.js";
-import type { ChannelAdapter, ChannelCaps, ChannelEvent, Outgoing, ReceiveResult, SendResult, Target, WebhookInput } from "../server/channel.js";
-import { safeEqual } from "../server/crypto.js";
-import type { ContactHint } from "../server/store.js";
+import { AUTHOR_TYPES, type AuthorType, type Delivery } from "../../core/model.js";
+import type { BotCommand, ControlMode } from "../../core/conversation.js";
+import type { ChannelAdapter, ChannelCaps, ChannelEvent, Outgoing, ReceiveResult, SendResult, Target, WebhookInput } from "../../server/channel.js";
+import { safeEqual } from "../../server/crypto.js";
+import type { ContactHint } from "../../server/store.js";
 
 /* Подключение «своя студия» (Muras AI Studio) — ЗАГОТОВКА. API студии для CRM ещё нет: он появится на этапе 5 её плана
    (артефакт «ИИ-продажник вместо Nextbot», раздел 10.8). Пути, поля и подпись ниже — по плану; когда студия выпустит
@@ -87,7 +87,7 @@ export function studioEvents(ev: StudioEvent): ChannelEvent[] {
           files: files.filter((f) => typeof f.url === "string").map((f) => ({ urls: [f.url!], caption: f.name ?? null })),
           handoff: pick(d, "handoff") === true,
           shadow: pick(d, "is_shadow", "isShadow") === true,
-          replyTo: text(pick(d, "reply_to", "replyTo")),
+          replyTo: ((r) => (r ? { externalId: `studio:${r}` } : null))(text(pick(d, "reply_to", "replyTo"))),
         },
       }];
     }

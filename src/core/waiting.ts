@@ -1,9 +1,11 @@
 import type { ChatMessage } from "./model.js";
 
-/* «Ждут ответа» — правило Атласа (src/lib/waiting.ts), одно для списка диалогов, счётчика в меню и звонка.
+/* «Ждут ответа» — одно правило для списка диалогов, счётчика в меню и уведомления.
 
    Клиент написал, а ему ещё никто не ответил — ни бот, ни менеджер, ни внесённая вручную копия ответа.
-   - Не в счёт: заметки команды, служебные строки, звонки, недоставленное сообщение, черновик теневого режима.
+   - Не в счёт: заметки команды, служебные строки, недоставленное сообщение, черновик теневого режима.
+   - Звонки: состоявшийся разговор (call без «пропущен») — ответ; пропущенный входящий — клиент ждёт, как если бы
+     написал; пропущенный исходящий и звонок без сведений (call не заполнен) ожидание не меняют.
    - «Ответ не нужен» (dismissedAt — клиент написал «спасибо») снимает ожидание до следующего сообщения клиента.
    - Бот ответил «передаю вас менеджеру» (handoff) — это не ответ: бот сам не справился, клиент ждёт человека —
      с первого своего сообщения после последнего настоящего ответа, а если такого нет — с момента передачи.
@@ -12,7 +14,7 @@ import type { ChatMessage } from "./model.js";
    проект считает то же самое в базе: waitSinceSql собирает подзапрос по тем же правилам (проверено на Postgres). */
 
 export type WaitMessage = Pick<ChatMessage, "at" | "kind" | "author"> &
-  Partial<Pick<ChatMessage, "delivery" | "handoff" | "shadow">>;
+  Partial<Pick<ChatMessage, "delivery" | "handoff" | "shadow" | "call">>;
 
 const time = (v: string | Date | null | undefined): number => (v === null || v === undefined ? NaN : v instanceof Date ? v.getTime() : Date.parse(v));
 
@@ -21,8 +23,16 @@ function isChat(m: WaitMessage): boolean {
   return m.kind === "message";
 }
 
-/** Настоящий ответ клиенту: наше сообщение, которое ушло или уходит, не «передаю менеджеру» и не черновик */
+/** Клиент написал или не дозвонился до нас — теперь ждёт ответа */
+function isClientTurn(m: WaitMessage): boolean {
+  if (m.kind === "call") return m.author.type === "client" && m.call?.missed === true;
+  return isChat(m) && m.author.type === "client";
+}
+
+/** Настоящий ответ клиенту: наше сообщение, которое ушло или уходит, не «передаю менеджеру» и не черновик;
+ *  или состоявшийся разговор по телефону */
 export function isRealReply(m: WaitMessage): boolean {
+  if (m.kind === "call") return !!m.call && !m.call.missed && m.author.type !== "system";
   return isChat(m) && m.author.type !== "client" && m.author.type !== "system" && m.delivery !== "failed" && !m.handoff && !m.shadow;
 }
 
@@ -37,12 +47,11 @@ export function waitSince(messages: readonly WaitMessage[], dismissedAt?: string
   let lastHandoff = -Infinity;
   let lastHandoffAt: string | null = null;
   for (const m of messages) {
-    if (!isChat(m)) continue;
     const t = time(m.at);
     if (!(t > since)) continue;
-    if (m.author.type === "client") {
+    if (isClientTurn(m)) {
       if (t < firstIn) { firstIn = t; firstInAt = m.at; }
-    } else if (m.handoff && m.author.type !== "system" && m.delivery !== "failed" && !m.shadow && t > lastHandoff) {
+    } else if (isChat(m) && m.handoff && m.author.type !== "client" && m.author.type !== "system" && m.delivery !== "failed" && !m.shadow && t > lastHandoff) {
       lastHandoff = t;
       lastHandoffAt = m.at;
     }
@@ -94,7 +103,7 @@ export type WaitSqlOptions = {
  *  пишутся для строки с псевдонимом x. Совпадает с waitSince — проверяет тест на Postgres (tests/core/waiting-sql.test.ts). */
 export function waitSinceSql(o: WaitSqlOptions): string {
   const own = (alias: string, cond: string) =>
-    `${alias}.${o.contactColumn} = ${o.contactRef}${o.scope ? ` AND ${rename(o.scope, alias)}` : ""} AND ${rename(cond, alias)}`;
+    `${alias}.${o.contactColumn} = ${o.contactRef}${o.scope ? ` AND (${rename(o.scope, alias)})` : ""} AND (${rename(cond, alias)})`;
   const lastReply = `(SELECT MAX(r.${o.timeColumn}) FROM ${o.table} r WHERE ${own("r", o.reply)})`;
   const since = o.dismissedAt ? `GREATEST(${lastReply}, ${o.dismissedAt})` : lastReply;
   const firstIn = `(SELECT MIN(i.${o.timeColumn}) FROM ${o.table} i WHERE ${own("i", o.clientMessage)} AND i.${o.timeColumn} > w.since)`;

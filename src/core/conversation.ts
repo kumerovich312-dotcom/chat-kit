@@ -22,6 +22,44 @@ export type DialogSummary = {
   found?: { text: string; at: string } | null | undefined;
   /** Состояние бота в диалоге — пометка «бот на паузе», «не отвечать» */
   bot?: BotState | null | undefined;
+  /** Статус: открыт, отложен до времени, закрыт (team.ts — когда отложенный снова открыт) */
+  status?: DialogStatus | undefined;
+  /** До какого времени отложен */
+  snoozedUntil?: string | null | undefined;
+  /** Метки диалога — коды из паспорта проекта (profile.tags) */
+  tags?: readonly string[] | undefined;
+  /** Ответственный сотрудник */
+  assignee?: Assignee | null | undefined;
+  /** Оценка ИИ по последним сообщениям клиента: настроение и срочность */
+  assessment?: Assessment | null | undefined;
+};
+
+/** Статус диалога: открыт — в работе; отложен — вернётся сам в назначенное время или когда клиент напишет; закрыт */
+export type DialogStatus = "open" | "snoozed" | "closed";
+
+export type Assignee = { id: string; name: string };
+
+export type Mood = "positive" | "neutral" | "negative";
+export type Urgency = "low" | "normal" | "high";
+
+/** Настроение и срочность клиента — оценка ИИ («розетка ИИ»), проект хранит её у диалога */
+export type Assessment = {
+  mood?: Mood | null | undefined;
+  urgency?: Urgency | null | undefined;
+  /** Почему так: «спрашивает, где заказ, третий раз» */
+  reason?: string | null | undefined;
+  /** Когда оценено */
+  at?: string | null | undefined;
+};
+
+/** Кто из команды сейчас в диалоге — чтобы не ответить клиенту вдвоём («коллега уже отвечает») */
+export type Presence = {
+  userId: string;
+  name: string;
+  /** viewing — открыл диалог, typing — пишет ответ */
+  state: "viewing" | "typing";
+  /** Когда было последнее движение (ISO) — старше минуты не показываем */
+  at: string;
 };
 
 /** Кто ведёт диалог (план студии 10.5): бот, человек (бот на паузе) или бот молчит всегда («не отвечать этому клиенту») */

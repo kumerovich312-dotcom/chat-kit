@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { isHandoff, lastDialogLine, nextbotTime, parseDialogDump, parseDialogId, parseEvent, parseStamp } from "../../src/nextbot/parse.js";
-import { mediaCandidates, mediaFolders, mediaHostAllowed, mediaRef, mediaText, mediaTitle } from "../../src/nextbot/media.js";
-import { webhookUrlFix, webhookUrlProblem } from "../../src/nextbot/webhook.js";
+import { isHandoff, lastDialogLine, nextbotTime, parseDialogDump, parseDialogId, parseEvent, parseStamp } from "../../../src/channels/nextbot/parse.js";
+import { mediaCandidates, mediaFolders, mediaHostAllowed, mediaRef, mediaText, mediaTitle } from "../../../src/channels/nextbot/media.js";
+import { webhookUrlFix, webhookUrlProblem } from "../../../src/channels/nextbot/webhook.js";
 
 // Разбор событий Nextbot — случаи из проверок Атласа (test-nextbot.mjs, test-units.mjs), данные вымышленные.
 

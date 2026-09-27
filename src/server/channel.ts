@@ -2,7 +2,8 @@ import type { Author, Delivery } from "../core/model.js";
 import type { BotCommand, ControlMode } from "../core/conversation.js";
 import type { ChatStore, ContactHint } from "./store.js";
 
-/* «Розетка» для каналов (ChannelAdapter) — общий вид любого подключения: Nextbot, шлюз WhatsApp TishCRM, своя студия.
+/* «Розетка» для каналов (ChannelAdapter) — общий вид любого подключения: Telegram, WhatsApp, Instagram, почта, звонки,
+   чат на сайте, Nextbot, ИИ-студия.
    Смена подключения — настройка проекта, а не переписывание: окно переписки и переходник к базе те же.
 
    Подключение умеет:
@@ -36,12 +37,30 @@ export type IncomingMessage = {
   at?: string | null | undefined;
   author: Author;
   text: string;
+  /** Тема письма (почта) */
+  subject?: string | null | undefined;
   files?: RemoteFile[] | undefined;
   /** Бот передал человеку («передаю менеджеру») */
   handoff?: boolean | undefined;
-  replyTo?: string | null | undefined;
+  /** Ответ на сообщение: его номер у канала и, если канал прислал, начало текста — для цитаты */
+  replyTo?: { externalId: string; text?: string | null | undefined } | null | undefined;
   /** Черновик теневого режима */
   shadow?: boolean | undefined;
+};
+
+/** Звонок от телефонии: входящий или исходящий, принят или пропущен, запись разговора */
+export type IncomingCall = {
+  /** Ключ повтора (номер звонка у телефонии) */
+  externalId: string;
+  /** Начало звонка (ISO) */
+  at?: string | null | undefined;
+  direction: "in" | "out";
+  missed?: boolean | undefined;
+  durationSec?: number | null | undefined;
+  /** Кто из команды говорил: имя или внутренний номер */
+  manager?: string | null | undefined;
+  /** Запись разговора — набор скачает её после ответа телефонии */
+  record?: RemoteFile | null | undefined;
 };
 
 /** События, в которые подключение раскладывает уведомление канала */
@@ -58,9 +77,11 @@ export type ChannelEvent =
   | { type: "handoff"; contact: ContactHint; reason?: string | null | undefined; summary?: string | null | undefined; fields?: Record<string, string> | undefined }
   /** Заявка, собранная ботом (Nextbot «Передать заявку», студия lead.captured) */
   | { type: "lead"; contact: ContactHint; fields: Record<string, string | number | null> }
-  /** Бот просит данные у CRM (функция «Найти вакансии») — ответ пишет проект */
+  /** Бот просит данные у CRM (свободное время записи, наличие товара) — ответ пишет проект */
   | { type: "function"; name: string; args: Record<string, string | null> }
-  /** Сообщение уже записано в базу самим каналом (шлюз TishCRM) — только обновить экраны */
+  /** Звонок: в ленте — строка звонка, пропущенный входящий — клиент ждёт ответа */
+  | { type: "call"; contact: ContactHint; call: IncomingCall }
+  /** Сообщение уже записано в базу самим каналом (свой шлюз проекта) — только обновить экраны */
   | { type: "refresh"; contactId: string }
   /** Проверка связи */
   | { type: "ping" }
@@ -83,8 +104,12 @@ export type Target = {
 
 export type Outgoing = {
   text: string;
-  /** Файл: у Nextbot и студии — ссылка, по которой они заберут его сами (signFileLink); у шлюза — путь на диске */
-  file?: { name: string; mime: string; url?: string | undefined; path?: string | undefined } | undefined;
+  /** Тема письма (почта) */
+  subject?: string | null | undefined;
+  /** Файл: ссылка, по которой канал заберёт его сам (signFileLink), или данные — для каналов, куда файл загружают */
+  file?: { name: string; mime: string; url?: string | undefined; path?: string | undefined; data?: Uint8Array | undefined } | undefined;
+  /** Ответ на сообщение клиента — его номер у канала (канал покажет цитату) */
+  replyTo?: { externalId: string } | null | undefined;
   /** Кто пишет — сотрудник из CRM */
   author?: Author | undefined;
   /** Номер записи сообщения в базе проекта — по нему подключение отметит доставку */
@@ -159,9 +184,9 @@ export type IngestSummary = {
   contactId?: string | undefined;
   createdContact?: boolean | undefined;
   messageIds: string[];
-  /** Ответ на функцию бота («Найти вакансии») */
+  /** Ответ на функцию бота */
   functionResult?: { name: string; text: string; count?: number | undefined } | undefined;
-  /** Что ещё проект вернул из своих обработчиков (номер сделки и т. п.) */
+  /** Что ещё проект вернул из своих обработчиков (номер заявки и т. п.) */
   extra?: Record<string, unknown> | undefined;
   /** Что подключение передало из receive для своего ответа */
   meta?: Record<string, unknown> | undefined;

@@ -14,7 +14,8 @@ beforeAll(async () => {
     CREATE TABLE contacts (id int PRIMARY KEY, org_id int NOT NULL, dismissed_at timestamptz);
     CREATE TABLE messages (
       id serial PRIMARY KEY, org_id int NOT NULL, contact_id int NOT NULL, created_at timestamptz NOT NULL,
-      kind text NOT NULL, author text NOT NULL, delivery text, handoff boolean NOT NULL DEFAULT false, shadow boolean NOT NULL DEFAULT false
+      kind text NOT NULL, author text NOT NULL, delivery text, handoff boolean NOT NULL DEFAULT false, shadow boolean NOT NULL DEFAULT false,
+      call_missed boolean
     );`);
 });
 
@@ -28,8 +29,10 @@ const SQL = waitSinceSql({
   contactRef: "c.id",
   timeColumn: "created_at",
   scope: "x.org_id = c.org_id",
-  clientMessage: "x.kind = 'message' AND x.author = 'client'",
-  reply: "x.kind = 'message' AND x.author NOT IN ('client', 'system') AND x.delivery IS DISTINCT FROM 'failed' AND NOT x.handoff AND NOT x.shadow",
+  // Условия с «ИЛИ» — набор сам берёт их в скобки
+  clientMessage: "x.kind = 'message' AND x.author = 'client' OR x.kind = 'call' AND x.author = 'client' AND x.call_missed",
+  reply: "x.kind = 'message' AND x.author NOT IN ('client', 'system') AND x.delivery IS DISTINCT FROM 'failed' AND NOT x.handoff AND NOT x.shadow"
+    + " OR x.kind = 'call' AND x.author <> 'system' AND NOT x.call_missed",
   handoff: "x.kind = 'message' AND x.author NOT IN ('client', 'system') AND x.handoff AND x.delivery IS DISTINCT FROM 'failed' AND NOT x.shadow",
   dismissedAt: "c.dismissed_at",
 });
@@ -62,11 +65,17 @@ describe("waitSinceSql", () => {
         const delivery = author === "client" ? null : deliveries[Math.floor(rand() * deliveries.length)]!;
         const handoff = author === "bot" && rand() < 0.3;
         const shadow = author === "bot" && rand() < 0.1;
-        const msg: WaitMessage = { at: new Date(t).toISOString(), kind, author: { type: author }, ...(delivery ? { delivery } : {}), handoff, shadow };
+        // Звонок: без сведений, пропущенный или состоявшийся
+        const r = kind === "call" ? rand() : 1;
+        const missed = r < 0.33 ? null : r < 0.66;
+        const msg: WaitMessage = {
+          at: new Date(t).toISOString(), kind, author: { type: author }, ...(delivery ? { delivery } : {}), handoff, shadow,
+          ...(kind === "call" && missed !== null ? { call: { missed } } : {}),
+        };
         list.push(msg);
         await db.query(
-          "INSERT INTO messages (org_id, contact_id, created_at, kind, author, delivery, handoff, shadow) VALUES (1, $1, $2, $3, $4, $5, $6, $7)",
-          [id, msg.at, kind, author, delivery, handoff, shadow]
+          "INSERT INTO messages (org_id, contact_id, created_at, kind, author, delivery, handoff, shadow, call_missed) VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8)",
+          [id, msg.at, kind, author, delivery, handoff, shadow, kind === "call" ? missed : null]
         );
       }
       // Чужая компания с тем же номером клиента — не должна мешать
@@ -86,8 +95,8 @@ describe("waitSinceSql", () => {
       table: "messages", contactColumn: "client_id", contactRef: "c.id", timeColumn: "created_at",
       clientMessage: "x.direction = 'in' AND x.text <> 'x.y'", reply: "x.direction = 'out' AND xx.flag", scope: "x.org_id = $1",
     });
-    expect(sql).toContain("i.direction = 'in' AND i.text <> 'x.y'");
-    expect(sql).toContain("r.direction = 'out' AND xx.flag");
-    expect(sql).toContain("r.org_id = $1");
+    expect(sql).toContain("(i.direction = 'in' AND i.text <> 'x.y')");
+    expect(sql).toContain("(r.direction = 'out' AND xx.flag)");
+    expect(sql).toContain("(r.org_id = $1)");
   });
 });

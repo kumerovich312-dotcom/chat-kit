@@ -29,9 +29,8 @@ describe("выпуск", () => {
     const core = await load("core/index.js");
     expect(core.normalizePhone("0555 00-00-01", "+996")).toBe("+996555000001");
     expect(typeof (await load("server/index.js")).ingest).toBe("function");
-    expect(typeof (await load("nextbot/index.js")).createNextbotAdapter).toBe("function");
-    expect(typeof (await load("wa-gateway/index.js")).createWaGatewayAdapter).toBe("function");
-    expect(typeof (await load("studio/index.js")).createStudioAdapter).toBe("function");
+    expect(typeof (await load("channels/nextbot/index.js")).createNextbotAdapter).toBe("function");
+    expect(typeof (await load("channels/studio/index.js")).createStudioAdapter).toBe("function");
     expect(existsSync(join(root, "dist", "ui", "styles.css"))).toBe(true);
     expect(readFileSync(join(root, "dist", "ui", "Composer.js"), "utf8").startsWith('"use client"')).toBe(true);
   });

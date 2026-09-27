@@ -1,9 +1,9 @@
-import { isChatChannel } from "../core/channels.js";
-import type { Author } from "../core/model.js";
-import type { ApplyContext, ApplySummary, ChannelAdapter, ChannelCaps, DownloadResult, IngestSummary, Outgoing, ReceiveResult, SendResult, Target, WebhookInput } from "../server/channel.js";
-import { sha1Hex, sha256Hex } from "../server/crypto.js";
-import { fetchFile, isPrivateHost } from "../server/download.js";
-import type { ChatStore, ContactHint, NewMessage, WaitChange } from "../server/store.js";
+import { isChatChannel } from "../../core/channels.js";
+import type { Author } from "../../core/model.js";
+import type { ApplyContext, ApplySummary, ChannelAdapter, ChannelCaps, DownloadResult, IngestSummary, Outgoing, ReceiveResult, SendResult, Target, WebhookInput } from "../../server/channel.js";
+import { sha1Hex, sha256Hex } from "../../server/crypto.js";
+import { fetchFile, isPrivateHost } from "../../server/download.js";
+import type { ChatStore, ContactHint, NewMessage, WaitChange } from "../../server/store.js";
 import { mediaCandidates, mediaFolders, mediaRef, mediaText, mediaTitle, type MediaRef } from "./media.js";
 import { kvMedia, memoryMedia, type NextbotMedia } from "./media-store.js";
 import { blank, isHandoff, nextbotTime, parseDialogDump, parseEvent, type ParsedEvent } from "./parse.js";

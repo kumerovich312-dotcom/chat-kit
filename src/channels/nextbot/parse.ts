@@ -1,5 +1,5 @@
-import { normalizeChannel, type ChatChannel } from "../core/channels.js";
-import { normalizePhone, phoneDigits } from "../core/phone.js";
+import { normalizeChannel, type ChatChannel } from "../../core/channels.js";
+import { normalizePhone, phoneDigits } from "../../core/phone.js";
 
 /* Разбор события Nextbot — без базы. Перенесено из Атласа (src/lib/nextbot.ts, parseEvent и помощники) как есть:
    на этих правилах Атлас работает с настоящим Nextbot с 22.09.2026.

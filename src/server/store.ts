@@ -1,4 +1,4 @@
-import type { Author, Delivery, MessageKind } from "../core/model.js";
+import type { Author, CallInfo, Delivery, MessageCard, MessageKind, MessageQuote } from "../core/model.js";
 
 /* «Переходник» к базе проекта (ChatStore). Каждый проект хранит клиентов, сообщения, файлы, сотрудников и права сам
    и пишет один файл, который умеет пять вещей:
@@ -7,7 +7,7 @@ import type { Author, Delivery, MessageKind } from "../core/model.js";
    3) сохранить файл;
    4) отметить «ждёт ответа»;
    5) сообщить открытым вкладкам.
-   Разделение компаний (org_id в каждом запросе у Атласа и TishCRM, RLS у студии) остаётся внутри переходника: набор
+   Разделение компаний (org_id в каждом запросе или правила строк в базе) остаётся внутри переходника: набор
    о компаниях не знает — проект создаёт переходник уже для своей компании (например, по ключу из вебхука).
 
    Остальные методы — по желанию: их просят подключения с «неточными» каналами (Nextbot), чтобы не задвоить
@@ -15,9 +15,9 @@ import type { Author, Delivery, MessageKind } from "../core/model.js";
 
 /** По чему найти или завести клиента */
 export type ContactHint = {
-  /** Подключение, откуда пришло: «nextbot», «wa-gateway», «studio» */
+  /** Подключение, откуда пришло: «telegram», «green-api», «nextbot», «site»… */
   source: string;
-  /** Номер собеседника у подключения: диалог Nextbot, адрес WhatsApp, id контакта студии */
+  /** Номер собеседника у подключения: чат Telegram, адрес WhatsApp, диалог Nextbot, почта, посетитель сайта */
   externalId: string;
   /** Канал: whatsapp, instagram, telegram… */
   channel: string;
@@ -25,8 +25,10 @@ export type ContactHint = {
   phone?: string | null | undefined;
   /** Телефон подлинный — из самого мессенджера (WhatsApp), а не назван собеседником. Только по такому номеру можно
    *  привязать диалог к уже известному клиенту: в Instagram и Telegram посторонний мог бы назвать чужой номер
-   *  и получить чужую переписку (правило Атласа) */
+   *  и получить чужую переписку */
   phoneTrusted?: boolean | undefined;
+  /** Почта — у писем и у посетителя сайта, если он её оставил */
+  email?: string | null | undefined;
   name?: string | null | undefined;
   username?: string | null | undefined;
 };
@@ -56,8 +58,13 @@ export type NewMessage = {
   subject?: string | null | undefined;
   /** Сохранённый файл (saveFile) — сообщение с вложением */
   fileId?: string | null | undefined;
-  replyTo?: string | null | undefined;
+  /** Ответ на сообщение: номер цитируемого у канала (externalId) — переходник найдёт его у себя; текст — если не найдёт */
+  replyTo?: MessageQuote | null | undefined;
   shadow?: boolean | undefined;
+  /** Звонок (kind: "call") */
+  call?: CallInfo | null | undefined;
+  /** Карточка проекта */
+  card?: MessageCard | null | undefined;
 };
 
 export type SavedMessage = {

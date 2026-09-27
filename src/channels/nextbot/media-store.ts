@@ -1,4 +1,4 @@
-import type { KeyValue } from "../server/store.js";
+import type { KeyValue } from "../../server/store.js";
 
 /* Хранилище подключения Nextbot — что Атлас держал в таблицах nextbot_media и nextbot_settings.media_folders и что узнавал
    по журналу nextbot_events. Проект может отдать своё (Атлас — поверх этих таблиц, чтобы помнить уже забранные файлы);

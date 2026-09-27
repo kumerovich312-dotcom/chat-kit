@@ -1,7 +1,7 @@
 {
   "name": "@muras/chat-kit",
   "version": "0.1.0",
-  "description": "Общий набор переписки с клиентами: окно переписки (React), ядро без базы, подключения каналов (Nextbot, шлюз WhatsApp, студия)",
+  "description": "Нейтральная основа переписки с клиентами: окно переписки (React), ядро без базы, подключения каналов",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
@@ -22,16 +22,12 @@
       "default": "./dist/server/index.js"
     },
     "./nextbot": {
-      "types": "./dist/nextbot/index.d.ts",
-      "default": "./dist/nextbot/index.js"
-    },
-    "./wa-gateway": {
-      "types": "./dist/wa-gateway/index.d.ts",
-      "default": "./dist/wa-gateway/index.js"
+      "types": "./dist/channels/nextbot/index.d.ts",
+      "default": "./dist/channels/nextbot/index.js"
     },
     "./studio": {
-      "types": "./dist/studio/index.d.ts",
-      "default": "./dist/studio/index.js"
+      "types": "./dist/channels/studio/index.d.ts",
+      "default": "./dist/channels/studio/index.js"
     },
     "./styles.css": "./dist/ui/styles.css",
     "./package.json": "./package.json"

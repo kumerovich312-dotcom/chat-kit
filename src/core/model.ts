@@ -1,8 +1,8 @@
 /* Модель сообщения — одна для всех проектов и каналов. Без базы и без React: годится и для сервера, и для браузера.
 
-   Автор — как в плане студии (раздел 10.2, решение D-041): клиент, бот, менеджер из CRM, менеджер с телефона,
+   Автор — как в плане ИИ-студии (раздел 10.2, решение D-041): клиент, бот, менеджер из CRM, менеджер с телефона,
    администратор студии, служебное. Каждый проект хранит сообщения в своей базе по-своему и переводит их в этот вид
-   (у Атласа sender client / bot / manager / phone, у TishCRM author patient / ai / operator:<имя> / phone). */
+   (например, поле «кто написал» client / bot / manager / phone). */
 
 /** Кто написал */
 export type AuthorType = "client" | "bot" | "operator_crm" | "operator_phone" | "operator_admin" | "system";
@@ -36,13 +36,43 @@ export type Attachment = {
   url: string;
   /** Метка содержимого: после поворота фото новая — браузер не покажет прежнюю картинку из кэша */
   version?: string | null | undefined;
+  /** Длина голосового или записи в секундах — показать до загрузки */
+  durationSec?: number | null | undefined;
+  /** Расшифровка голосового или записи звонка (кнопка «Расшифровать» — «розетка ИИ») */
+  transcript?: string | null | undefined;
+};
+
+/** Цитата: на какое сообщение ответили. Проект заполняет, что знает; окно найдёт исходное в ленте по id */
+export type MessageQuote = {
+  /** Номер цитируемого сообщения в базе проекта — по нему лента прокрутит к исходному */
+  id?: string | null | undefined;
+  /** Номер цитируемого сообщения у канала */
+  externalId?: string | null | undefined;
+  /** Кто написал и начало текста — если исходного сообщения в ленте нет */
+  author?: Author | null | undefined;
+  text?: string | null | undefined;
+  /** Цитируют файл — его имя и тип (фото, голосовое) */
+  attachment?: { name: string; mime: string } | null | undefined;
+};
+
+/** Карточка проекта в ленте: запись на приём, вакансия, счёт, заказ. Как её показать — описано в паспорте проекта
+ *  (profile.cards[type]); текст сообщения — запасной вид для канала и поиска */
+export type MessageCard = {
+  /** Вид карточки из паспорта: «appointment», «vacancy», «invoice» */
+  type: string;
+  /** Данные карточки: «date» → «2026-10-12T15:00», «doctor» → «Д-р Асанова» */
+  data: Readonly<Record<string, string | number | boolean | null>>;
 };
 
 export type CallInfo = {
+  /** Входящий (звонил клиент) или исходящий (звонили мы) */
+  direction?: "in" | "out" | undefined;
   durationSec?: number | null | undefined;
   /** Запись разговора — адрес на сайте проекта */
   recordUrl?: string | null | undefined;
   missed?: boolean | undefined;
+  /** Кто из команды говорил */
+  manager?: string | null | undefined;
 };
 
 export type ChatMessage = {
@@ -66,10 +96,13 @@ export type ChatMessage = {
   handoff?: boolean | undefined;
   /** Номер сообщения у канала — по нему повтор не записывается второй раз */
   externalId?: string | null | undefined;
-  replyTo?: string | null | undefined;
+  /** Ответ на сообщение — цитата */
+  replyTo?: MessageQuote | null | undefined;
   /** Черновик теневого режима студии: бот предложил ответ, но клиенту он не ушёл */
   shadow?: boolean | undefined;
   call?: CallInfo | null | undefined;
+  /** Карточка проекта (запись на приём, счёт) — у сообщения клиенту или у заметки команды */
+  card?: MessageCard | null | undefined;
 };
 
 /** Сообщение написал клиент (входящее) */

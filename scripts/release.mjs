@@ -91,11 +91,16 @@ const npm = npmCli();
 const packed = JSON.parse(run(process.execPath, [npm, "pack", "--json", "--ignore-scripts", "--pack-destination", out]))[0];
 if (!packed || packed.filename !== fileName) stop(`npm pack дал «${packed?.filename}», ждали «${fileName}»`);
 const files = packed.files.map((f) => f.path.replace(/\\/g, "/"));
-const need = ["package.json", "README.md", "CHANGELOG.md", "dist/ui/styles.css"];
-for (const part of ["core", "ui", "server", "nextbot", "wa-gateway", "studio"]) need.push(`dist/${part}/index.js`, `dist/${part}/index.d.ts`);
+// Всё, на что ссылается package.json exports, должно лежать в архиве
+const need = ["package.json", "README.md", "CHANGELOG.md"];
+const parts = [];
+for (const [key, v] of Object.entries(pkg.exports)) {
+  for (const p of typeof v === "string" ? [v] : [v.types, v.default]) if (p !== "./package.json") need.push(p.replace(/^\.\//, ""));
+  if (typeof v !== "string" && key !== "." && key !== "./ui") parts.push(key.slice(2));
+}
 const missing = need.filter((f) => !files.includes(f));
 if (missing.length) stop(`в архиве нет: ${missing.join(", ")}`);
-const extra = files.filter((f) => !need.includes(f) && !f.startsWith("dist/"));
+const extra = files.filter((f) => !need.includes(f) && !f.startsWith("dist/") && !f.startsWith("docs/"));
 if (extra.length) stop(`в архив попало лишнее: ${extra.join(", ")}`);
 const tgz = join(out, fileName);
 console.log(`  ${fileName}: ${files.length} файлов, ${(packed.size / 1024).toFixed(0)} КБ`);
@@ -110,7 +115,7 @@ writeFileSync(
   join(trial, "check.mjs"),
   [
     'const core = await import("@muras/chat-kit");',
-    'for (const part of ["server", "nextbot", "wa-gateway", "studio"]) await import(`@muras/chat-kit/${part}`);',
+    `for (const part of ${JSON.stringify(parts)}) await import(\`@muras/chat-kit/\${part}\`);`,
     'if (typeof core.waitSince !== "function") throw new Error("нет waitSince");',
     'console.log("  части набора открываются");',
   ].join("\n"),

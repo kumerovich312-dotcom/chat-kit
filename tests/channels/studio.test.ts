@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createStudioAdapter, studioSignature, verifyStudioSignature } from "../../src/studio/index.js";
+import { createStudioAdapter, studioSignature, verifyStudioSignature } from "../../src/channels/studio/index.js";
 import { createMemoryStore, ingest } from "../../src/server/index.js";
 
 // Заготовка подключения студии — по разделу 10.8 плана студии (API ещё нет). Секреты — тестовые.
