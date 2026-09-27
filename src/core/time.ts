@@ -71,6 +71,15 @@ export function fullTime(v: When, timeZone?: string): string {
   return `${d} ${MONTHS_GEN[m - 1]}, ${fmtClock(v, timeZone)}`;
 }
 
+/** «18:30», «завтра 09:00», «14 сен 18:30» — до какого времени (пауза бота) */
+export function untilText(v: When, timeZone?: string, now: When = Date.now()): string {
+  const d = dayDiff(v, now, timeZone);
+  const clock = fmtClock(v, timeZone, false);
+  if (d === 0) return clock;
+  if (d === 1) return `завтра ${clock}`;
+  return `${listTime(v, timeZone, now)} ${clock}`;
+}
+
 /** «1:05» — длительность голосового или звонка */
 export function fmtDuration(sec: number): string {
   const s = Math.max(0, Math.floor(sec));

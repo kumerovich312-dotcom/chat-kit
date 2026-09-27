@@ -6,6 +6,7 @@ import { channelLabel as labelOf } from "../core/channels.js";
 import { ChannelIcon } from "./bits.js";
 import { BoltIcon, ClipIcon, CloseIcon, SendIcon } from "./icons.js";
 import { usePending } from "./Pending.js";
+import { BotDraft } from "./Bot.js";
 
 /* Поле ввода — как в мессенджере (Атлас, 26.09.2026): Enter отправляет, Shift+Enter — новая строка, сообщение сразу видно
    в ленте с часиками, курсор остаётся в поле. Вкладки над полем — по желанию проекта:
@@ -49,7 +50,10 @@ export type ComposerProps = {
   } | undefined;
   initialText?: string | undefined;
   autoFocus?: boolean | undefined;
-  /** Своё над полем (например, черновик ответа от бота) — получает функцию «вставить текст в поле» */
+  /** «Второй пилот»: ответ, который предлагает бот на последнее сообщение клиента (показывается, пока его не скрыли).
+   *  sendAction — «Отправить как есть» (по умолчанию — то же действие, что у поля) */
+  copilot?: { text: string; title?: string | undefined; sendAction?: ((form: FormData) => Promise<SendResult>) | undefined } | null | undefined;
+  /** Своё над полем — получает функцию «вставить текст в поле» (только из браузерного кода) */
   above?: ((insert: (text: string) => void) => ReactNode) | undefined;
 };
 
@@ -121,6 +125,8 @@ export function Composer(p: ComposerProps) {
   };
 
   const insert = (t: string) => { setText(t); setMenu(null); area.current?.focus(); };
+  const [hidden, setHidden] = useState<string | null>(null);
+  const copilot = p.copilot && p.copilot.text.trim() && hidden !== p.copilot.text ? p.copilot : null;
 
   const submit = () => {
     const body = text.trim();
@@ -176,6 +182,10 @@ export function Composer(p: ComposerProps) {
   let lastGroup: string | undefined;
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="ck-composer">
+      {copilot ? (
+        <BotDraft text={copilot.text} title={copilot.title} onInsert={insert} onHide={() => setHidden(copilot.text)}
+          sendAction={async (fd) => { fd.set("channel", p.channel); fd.set("direction", "out"); setHidden(copilot.text); await (copilot.sendAction ?? p.action)(fd); }} />
+      ) : null}
       {p.above?.(insert)}
       <div className="ck-composer__bar">
         {tabs.length > 1 || mode === "copy" ? (

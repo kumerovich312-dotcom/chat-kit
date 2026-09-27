@@ -7,15 +7,15 @@ import {
   type BotState, type ChatMessage, type DialogSummary,
 } from "../src/core/index.js";
 import {
-  BotControls, BotDraft, BotFeedback, ChatWindow, Composer, NotifyToggle, WaitAlerts,
-  type LinkLike, type ListFilter, type ViewFile, type WaitEpisode,
+  ChatWindow, NotifyToggle, WaitAlerts,
+  type LinkLike, type ListFilter, type MemoryFact, type Rating, type ViewFile, type WaitEpisode,
 } from "../src/ui/index.js";
-import { BOT_DRAFT, CONTACTS, DEAL_FILES, ME, TEMPLATES, THREADS, TZ, type DemoContact } from "./data.js";
+import { CONTACTS, DEAL_FILES, ME, MEMORY, TEMPLATES, THREADS, TZ, suggestReply, type DemoContact } from "./data.js";
 
 // Демо-страница окна переписки: примерные данные, отправка и приход сообщений — понарошку, в памяти страницы.
 
 type Theme = "atlas" | "tish" | "studio";
-type BotVariant = "bar" | "buttons" | "none";
+type Viewer = "owner" | "manager" | "manager-teach";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 let counter = 1000;
@@ -33,14 +33,15 @@ function readUrl() {
 
 function App() {
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem("demo.theme") as Theme | null) ?? "atlas");
-  const [botVariant, setBotVariant] = useState<BotVariant>("bar");
-  const [feedback, setFeedback] = useState(true);
-  const [draft, setDraft] = useState(true);
+  const [viewer, setViewer] = useState<Viewer>("owner");
   const [url, setUrl] = useState(readUrl);
   const [contacts, setContacts] = useState<DemoContact[]>(CONTACTS);
   const [threads, setThreads] = useState<Record<string, ChatMessage[]>>(THREADS);
+  const [memory, setMemory] = useState(MEMORY);
   const [versions, setVersions] = useState<Record<string, number>>({});
   const [pinned, setPinned] = useState<Record<string, string>>({});
+  const [rated, setRated] = useState<Record<string, Rating>>({});
+  const [examples, setExamples] = useState<string[]>([]);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("demo.theme", theme); }, [theme]);
@@ -85,6 +86,7 @@ function App() {
   const active = contacts.find((c) => c.id === url.dialog) ?? contacts.find((c) => c.id === shown[0]?.id) ?? null;
   const messages = active ? withFiles(sortMessages(threads[active.id] ?? [])) : [];
   const since = active ? waitSince(messages, active.dismissedAt) : null;
+  const lastChat = messages.filter((m) => m.kind === "message").at(-1);
 
   const link = (over: { filter?: ListFilter | undefined; channel?: string | null | undefined; more?: boolean | undefined }) => {
     const sp = new URLSearchParams();
@@ -108,6 +110,7 @@ function App() {
 
   const patchMsg = (cid: string, mid: string, patch: Partial<ChatMessage>) =>
     setThreads((t) => ({ ...t, [cid]: (t[cid] ?? []).map((m) => (m.id === mid ? { ...m, ...patch } : m)) }));
+  const setBot = (cid: string, bot: BotState) => setContacts((cs) => cs.map((c) => (c.id === cid ? { ...c, bot } : c)));
 
   // Отправка понарошку: сообщение появляется сразу с часиками, потом галочка, две галочки, «прочитано»
   const send = async (fd: FormData) => {
@@ -132,9 +135,7 @@ function App() {
     };
     setThreads((t) => ({ ...t, [active.id]: [...(t[active.id] ?? []), msg] }));
     // Менеджер ответил сам — бот на паузе (как в плане студии: pauseOnManagerMessage)
-    if (d.mode === "send" && active.bot.mode === "bot") {
-      setContacts((cs) => cs.map((c) => (c.id === active.id ? { ...c, bot: { ...c.bot, mode: "manager", pausedUntil: new Date(Date.now() + 12 * 3_600_000).toISOString() } } : c)));
-    }
+    if (d.mode === "send" && active.bot.mode === "bot") setBot(active.id, { ...active.bot, mode: "manager", pausedUntil: new Date(Date.now() + 12 * 3_600_000).toISOString() });
     if (!failed && d.mode === "send") {
       setTimeout(() => patchMsg(active.id, mid, { delivery: "delivered" }), 1500);
       setTimeout(() => patchMsg(active.id, mid, { delivery: "read" }), 4000);
@@ -160,10 +161,20 @@ function App() {
     await sleep(300);
     const cmd = String(fd.get("command"));
     const hours = Number(fd.get("hours") ?? 0);
-    const next: BotState = cmd === "pause" ? { ...active.bot, mode: "manager", pausedUntil: new Date(Date.now() + hours * 3_600_000).toISOString() }
+    setBot(active.id, cmd === "pause" ? { ...active.bot, mode: "manager", pausedUntil: new Date(Date.now() + hours * 3_600_000).toISOString() }
       : cmd === "resume" || cmd === "unmute" ? { ...active.bot, mode: "bot", pausedUntil: null }
-      : { ...active.bot, mode: "muted" };
-    setContacts((cs) => cs.map((c) => (c.id === active.id ? { ...c, bot: next } : c)));
+      : { ...active.bot, mode: "muted" });
+  };
+
+  const memoryAction = async (fd: FormData) => {
+    if (!active) return;
+    await sleep(250);
+    const key = String(fd.get("key"));
+    const value = String(fd.get("value") ?? "");
+    setMemory((m) => ({
+      ...m,
+      [active.id]: fd.get("remove") ? (m[active.id] ?? []).filter((f) => f.key !== key) : (m[active.id] ?? []).map((f) => (f.key === key ? { ...f, value, source: "admin" as const } : f)),
+    }));
   };
 
   // Клиент пишет понарошку — чтобы услышать звонок «ждёт ответа»
@@ -176,8 +187,6 @@ function App() {
 
   const waitList: WaitEpisode[] = all.filter((d) => d.waitSince).map((d) => ({ key: waitKey(d.id, d.waitSince!), contactId: d.id, name: d.name, text: d.last?.text ?? "" }));
 
-  const fmtUntil = (iso: string) => new Intl.DateTimeFormat("ru-RU", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
-
   const rotate = async (f: ViewFile, deg: number) => {
     await sleep(500);
     const nextTurn = ((versions[f.id] ?? 0) + deg) % 360;
@@ -185,17 +194,7 @@ function App() {
     return { ok: true, version: `r${nextTurn}` };
   };
 
-  const composer = active ? {
-    action: send,
-    channel: active.channel,
-    live: active.channel !== "email",
-    emailTo: active.email ?? null,
-    replySubject: active.channel === "email" ? [...messages].reverse().find((m) => fromClient(m) && m.subject)?.subject ?? null : null,
-    templates: TEMPLATES.map((t) => (t.label === "Проверка: не доставится" ? { ...t, text: "Проверка: ошибка доставки" } : t)),
-    templateGroups: { deal: "По сделке клиента" },
-    templatesHref: "#настройки",
-    files: { upload: true, hint: "PDF, JPG или PNG до 10 МБ — уйдёт клиенту", projectTitle: "Из сделки", project: DEAL_FILES },
-  } : null;
+  const canTeach = viewer === "owner" || viewer === "manager-teach";
 
   const side: ReactNode = active ? (
     <div className="demo-side">
@@ -220,15 +219,13 @@ function App() {
             ))}
           </span>
         </span>
-        <span className="demo-bar__group">Кнопки бота:
+        <span className="demo-bar__group">Кто смотрит:
           <span className="ck-seg">
-            {([["bar", "А · полоса"], ["buttons", "Б · в шапке"], ["none", "нет"]] as const).map(([v, l]) => (
-              <button key={v} type="button" className="ck-seg__item" aria-pressed={botVariant === v} onClick={() => setBotVariant(v)}>{l}</button>
+            {([["owner", "Владелец"], ["manager", "Менеджер"], ["manager-teach", "Менеджер с доступом к обучению"]] as const).map(([v, l]) => (
+              <button key={v} type="button" className="ck-seg__item" aria-pressed={viewer === v} onClick={() => setViewer(v)}>{l}</button>
             ))}
           </span>
         </span>
-        <label className="demo-bar__group"><input type="checkbox" checked={feedback} onChange={(e) => setFeedback(e.target.checked)} /> оценка ответов бота</label>
-        <label className="demo-bar__group"><input type="checkbox" checked={draft} onChange={(e) => setDraft(e.target.checked)} /> черновик ответа от бота</label>
         <NotifyToggle />
         <button type="button" className="ck-btn ck-btn--sm" onClick={simulate}>Клиент пишет (проверить звонок)</button>
       </div>
@@ -273,15 +270,21 @@ function App() {
             note: active.channel !== "email" ? "сообщения идут в CRM" : null,
             cardHref: "#карточка-клиента",
             backHref: link({}),
-            headerActions: botVariant === "buttons" ? <BotControls state={active.bot} action={botAction} variant="buttons" fmtUntil={fmtUntil} /> : null,
-            above: botVariant === "bar" ? <BotControls state={active.bot} action={botAction} fmtUntil={fmtUntil} /> : null,
+            bot: { state: active.bot, action: botAction },
+            teach: canTeach ? {
+              rate: async (fd) => { await sleep(300); setRated((r) => ({ ...r, [String(fd.get("message_id"))]: String(fd.get("rating")) as Rating })); },
+              example: async (fd) => { await sleep(300); setExamples((x) => [...x, String(fd.get("message_id"))]); },
+              rated,
+              examples,
+            } : null,
+            copilot: lastChat && fromClient(lastChat) ? { text: suggestReply(lastChat.text, active.name) } : null,
+            memory: { facts: (memory[active.id] ?? []) as MemoryFact[], action: canTeach ? memoryAction : undefined },
             messages,
             thread: {
               meId: ME.id,
               resendAction: resend,
               onRotate: rotate,
               canRotate: () => true,
-              renderActions: feedback ? (m) => (m.author.type === "bot" && m.kind === "message" ? <BotFeedback messageId={m.id} action={async () => { await sleep(300); }} /> : null) : undefined,
               renderAttachmentExtra: (m, a) => (a.mime.startsWith("image/") || a.mime === "application/pdf"
                 ? <div style={{ display: "flex", justifyContent: fromClient(m) ? "flex-start" : "flex-end", margin: "0 0 6px" }}>
                     {pinned[a.id]
@@ -300,13 +303,19 @@ function App() {
               ),
             },
             waitSince: since,
-            handoff: !!messages.filter((m) => m.kind === "message").at(-1)?.handoff,
+            handoff: !!lastChat?.handoff,
             dismissAction: dismiss,
-            composerNode: composer && draft && since ? (
-              <Composer key={`${active.id}-draft`} {...composer} above={(insert) => <BotDraft text={BOT_DRAFT} onInsert={insert} sendAction={async (fd) => { await send(fd); }} />} />
-            ) : undefined,
-            composer,
-            findMoreHref: null,
+            composer: {
+              action: send,
+              channel: active.channel,
+              live: active.channel !== "email",
+              emailTo: active.email ?? null,
+              replySubject: active.channel === "email" ? [...messages].reverse().find((m) => fromClient(m) && m.subject)?.subject ?? null : null,
+              templates: TEMPLATES.map((t) => (t.label === "Проверка: не доставится" ? { ...t, text: "Проверка: ошибка доставки" } : t)),
+              templateGroups: { deal: "По сделке клиента" },
+              templatesHref: "#настройки",
+              files: { upload: true, hint: "PDF, JPG или PNG до 10 МБ — уйдёт клиенту", projectTitle: "Из сделки", project: DEAL_FILES },
+            },
           } : null}
         />
       </div>

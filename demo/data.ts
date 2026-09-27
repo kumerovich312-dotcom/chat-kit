@@ -108,3 +108,29 @@ export const DEAL_FILES = [
 
 /** Черновик ответа от бота для менеджера */
 export const BOT_DRAFT = "Азат, виза обычно готова за 3–4 недели после подачи. Подача назначена на 14 октября — после неё я сразу напишу вам.";
+
+/** Что бот узнал о клиентах (память бота) */
+export const MEMORY: Record<string, { key: string; label: string; value: string; source?: "bot" | "crm" | "admin" }[]> = {
+  "1": [
+    { key: "profession", label: "Профессия", value: "сварщик, опыт 5 лет", source: "bot" },
+    { key: "country", label: "Страна", value: "Польша", source: "bot" },
+    { key: "deadline", label: "Сроки", value: "нужен вызов к 1 ноября", source: "bot" },
+    { key: "passport", label: "Документы", value: "паспорт прислал, диплом — нет", source: "crm" },
+  ],
+  "2": [
+    { key: "profession", label: "Профессия", value: "сварщик", source: "bot" },
+    { key: "country", label: "Страна", value: "Германия, Мюнхен", source: "bot" },
+  ],
+  "4": [{ key: "country", label: "Страна", value: "Корея", source: "bot" }],
+};
+
+/** «Второй пилот»: что бот предложил бы ответить на последнее сообщение клиента */
+export function suggestReply(clientText: string, name: string): string {
+  const first = name.split(/\s+/)[0] ?? "";
+  const hi = first && !/^клиент/i.test(first) ? `${first}, ` : "";
+  if (/виз/i.test(clientText)) return `${hi}виза обычно готова за 3–4 недели после подачи. Подача назначена на 14 октября — после неё я сразу напишу вам.`;
+  if (/стоят|цен|стоимост/i.test(clientText)) return `${hi}стоимость зависит от страны и программы: от 45 000 сом. Какая страна вам интересна?`;
+  if (/коре/i.test(clientText)) return `${hi}в Корею сейчас набор на сезонную работу. Для начала нужен загранпаспорт — он у вас есть?`;
+  if (/офис|подъехать/i.test(clientText)) return `${hi}ждём вас в офисе с 10:00 до 18:00, адрес пришлю следующим сообщением.`;
+  return `${hi}спасибо за сообщение! Уточню и отвечу в течение часа.`;
+}

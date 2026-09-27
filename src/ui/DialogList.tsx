@@ -4,16 +4,7 @@ import { botStateText } from "../core/conversation.js";
 import { CHANNEL_LABEL } from "../core/channels.js";
 import { stripRich } from "../core/markup.js";
 import { plural } from "../core/text.js";
-import { dayDiff, fmtClock, listTime } from "../core/time.js";
-
-/** «18:30», «завтра 09:00», «14 сен 18:30» — до какого времени бот на паузе */
-export function untilText(iso: string, timeZone: string | undefined, now: number): string {
-  const d = dayDiff(iso, now, timeZone);
-  const clock = fmtClock(iso, timeZone, false);
-  if (d === 0) return clock;
-  if (d === 1) return `завтра ${clock}`;
-  return `${listTime(iso, timeZone, now)} ${clock}`;
-}
+import { listTime, untilText } from "../core/time.js";
 import { Avatar, ChannelIcon } from "./bits.js";
 import { WaitLabel } from "./Wait.js";
 

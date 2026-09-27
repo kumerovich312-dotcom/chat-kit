@@ -1205,7 +1205,7 @@
   background: var(--ck-surface);
 }
 .ck-head__who {
-  flex: 1;
+  flex: 1 1 150px;
   min-width: 150px;
 }
 .ck-head__name {
@@ -1229,6 +1229,10 @@ a.ck-head__name:hover {
   color: var(--ck-muted);
   font-size: var(--ck-text-sm);
   white-space: nowrap;
+}
+.ck-head__line > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ck-head__actions {
   display: flex;
@@ -1631,4 +1635,118 @@ a.ck-head__name:hover {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── Бот в шапке, «второй пилот», обучение, память о клиенте ─────────────────────────────────────────────────── */
+
+.ck-botstate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--ck-bot-line);
+  border-radius: 999px;
+  background: var(--ck-bot-soft);
+  color: var(--ck-bot);
+  font-size: var(--ck-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ck-teach {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ck-teach__form {
+  width: 100%;
+  text-align: left;
+}
+.ck-teach__reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ck-teach__example {
+  color: var(--ck-bot);
+}
+.ck-input,
+.ck-textarea {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--ck-line);
+  border-radius: var(--ck-radius-sm);
+  background: var(--ck-surface);
+  color: var(--ck-ink);
+  font: inherit;
+  font-size: var(--ck-text);
+  outline: none;
+}
+.ck-input:focus,
+.ck-textarea:focus {
+  border-color: var(--ck-accent);
+  box-shadow: 0 0 0 3px var(--ck-accent-soft);
+}
+.ck-textarea {
+  resize: vertical;
+}
+.ck-memory {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--ck-bot-line);
+  border-radius: var(--ck-radius);
+  background: var(--ck-bot-soft);
+}
+.ck-memory__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ck-bot);
+  font-size: var(--ck-text-sm);
+  font-weight: 700;
+}
+.ck-memory__row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ck-bot-line);
+}
+.ck-memory__label {
+  color: var(--ck-muted);
+  font-size: var(--ck-text-xs);
+}
+.ck-memory__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--ck-ink);
+  font-size: var(--ck-text-sm);
+}
+.ck-memory__value .ck-link {
+  margin-left: auto;
+  font-size: var(--ck-text-xs);
+}
+.ck-memory__edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ck-memory__src {
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--ck-surface);
+  color: var(--ck-muted);
+  font-size: 10px;
+}
+.ck-memory__empty {
+  color: var(--ck-muted);
+  font-size: var(--ck-text-xs);
+}
+.ck-window__side > * + * {
+  margin-top: 14px;
 }
