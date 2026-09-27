@@ -4,6 +4,8 @@
    администратор студии, служебное. Каждый проект хранит сообщения в своей базе по-своему и переводит их в этот вид
    (например, поле «кто написал» client / bot / manager / phone). */
 
+import { DEFAULT_TEXTS, fill, type Texts } from "./profile.js";
+
 /** Кто написал */
 export type AuthorType = "client" | "bot" | "operator_crm" | "operator_phone" | "operator_admin" | "system";
 
@@ -120,21 +122,25 @@ export function fromHuman(m: Pick<ChatMessage, "author">): boolean {
   return m.author.type === "operator_crm" || m.author.type === "operator_phone" || m.author.type === "operator_admin";
 }
 
-/** Подпись автора под сообщением: «ИИ-агент», «менеджер с телефона», имя сотрудника */
-export function authorLabel(a: Author, opts: { botName?: string | undefined; meId?: string | null | undefined } = {}): string {
+/** Подписи авторов из паспорта проекта (profile.texts) */
+export type AuthorTexts = Pick<Texts, "authorClient" | "authorBot" | "authorManager" | "authorPhone" | "authorPhoneNamed" | "authorAdmin" | "authorSystem" | "authorMe">;
+
+/** Подпись автора под сообщением: «ИИ-агент», «менеджер с телефона», имя сотрудника. t — слова отрасли из паспорта */
+export function authorLabel(a: Author, opts: { botName?: string | undefined; meId?: string | null | undefined; t?: AuthorTexts | undefined } = {}): string {
+  const t = opts.t ?? DEFAULT_TEXTS;
   switch (a.type) {
     case "client":
-      return a.name?.trim() || "клиент";
+      return a.name?.trim() || t.authorClient;
     case "bot":
-      return opts.botName ?? "ИИ-агент";
+      return opts.botName ?? t.authorBot;
     case "operator_phone":
-      return a.name?.trim() ? `${a.name.trim()} · с телефона` : "менеджер с телефона";
+      return a.name?.trim() ? fill(t.authorPhoneNamed, { name: a.name.trim() }) : t.authorPhone;
     case "operator_admin":
-      return a.name?.trim() || "администратор";
+      return a.name?.trim() || t.authorAdmin;
     case "operator_crm":
-      if (opts.meId && a.id && opts.meId === a.id) return "вы";
-      return a.name?.trim() || "менеджер";
+      if (opts.meId && a.id && opts.meId === a.id) return t.authorMe;
+      return a.name?.trim() || t.authorManager;
     case "system":
-      return "служебное";
+      return t.authorSystem;
   }
 }

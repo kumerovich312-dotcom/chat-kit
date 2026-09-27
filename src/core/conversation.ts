@@ -1,4 +1,5 @@
 import type { Author } from "./model.js";
+import { DEFAULT_TEXTS, fill, type Texts } from "./profile.js";
 
 /* Диалог в списке и состояние бота в диалоге — без базы. Список собирает проект (своим запросом к своей базе), окно
    переписки его только показывает. */
@@ -86,11 +87,14 @@ export type BotCommand =
   | { type: "mute" }
   | { type: "unmute" };
 
-/** Пометка состояния бота словами: «бот на паузе до 18:30», «бот не отвечает этому клиенту» */
-export function botStateText(s: BotState | null | undefined, fmtUntil: (iso: string) => string = (x) => x): string | null {
+/** Пометка состояния бота словами: «бот на паузе до 18:30», «бот не отвечает этому клиенту». t — слова из паспорта */
+export function botStateText(
+  s: BotState | null | undefined, fmtUntil: (iso: string) => string = (x) => x,
+  t: Pick<Texts, "botMuted" | "botPausedUntil" | "botPausedHuman" | "botCalled"> = DEFAULT_TEXTS,
+): string | null {
   if (!s) return null;
-  if (s.mode === "muted") return "бот не отвечает этому клиенту";
-  if (s.mode === "manager") return s.pausedUntil ? `бот на паузе до ${fmtUntil(s.pausedUntil)}` : "бот на паузе — отвечает человек";
-  if (s.handoff === "requested") return "бот позвал человека";
+  if (s.mode === "muted") return t.botMuted;
+  if (s.mode === "manager") return s.pausedUntil ? fill(t.botPausedUntil, { until: fmtUntil(s.pausedUntil) }) : t.botPausedHuman;
+  if (s.handoff === "requested") return t.botCalled;
   return null;
 }

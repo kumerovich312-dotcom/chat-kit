@@ -141,3 +141,154 @@ export const PencilIcon = (p: IconProps) => (
     <path {...line} d="M13.5 6.5l4 4" />
   </Svg>
 );
+
+/** Воронка — фильтр сообщений */
+export const FilterIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M4 5h16l-6 7.5v5.5l-4 2v-7.5z" />
+  </Svg>
+);
+
+/** Плитки — все файлы */
+export const GalleryIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="4" y="4" width="7" height="7" rx="1.5" />
+    <rect {...line} x="13" y="4" width="7" height="7" rx="1.5" />
+    <rect {...line} x="4" y="13" width="7" height="7" rx="1.5" />
+    <rect {...line} x="13" y="13" width="7" height="7" rx="1.5" />
+  </Svg>
+);
+
+/** Стрелка назад — «ответить» */
+export const ReplyIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M9 14l-5 -5l5 -5" />
+    <path {...line} d="M4 9h10.5a5.5 5.5 0 0 1 0 11h-1.5" />
+  </Svg>
+);
+
+/** Микрофон — записать голосовое */
+export const MicIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="9" y="3" width="6" height="11" rx="3" />
+    <path {...line} d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+  </Svg>
+);
+
+/** Корзина — удалить запись */
+export const TrashIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12M9 7v-3h6v3" />
+  </Svg>
+);
+
+/** Квадрат — остановить запись */
+export const StopIcon = (p: IconProps) => (
+  <Svg {...p} view="0 0 16 16">
+    <rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor" />
+  </Svg>
+);
+
+/** Плюс — кнопки проекта */
+export const PlusIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M12 5v14M5 12h14" />
+  </Svg>
+);
+
+/** Палочка — «улучшить текст» */
+export const WandIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M6 21l12 -12l-3 -3l-12 12z" />
+    <path {...line} d="M15 6l3 3M19 3v2M20 7h2M17 1.5v0M21 11v2M22 12h-2" />
+  </Svg>
+);
+
+/** Строки — краткое содержание, текст голосового */
+export const TextIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M5 6h14M5 10h14M5 14h9M5 18h6" />
+  </Svg>
+);
+
+/** Ярлык — метка диалога */
+export const TagIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M4 4h7l9 9l-7 7l-9 -9z" />
+    <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+  </Svg>
+);
+
+/** Человек — ответственный */
+export const UserIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle {...line} cx="12" cy="8" r="4" />
+    <path {...line} d="M5 20a7 7 0 0 1 14 0" />
+  </Svg>
+);
+
+/** Глаз — смотрит диалог */
+export const EyeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M2 12s3.5 -7 10 -7s10 7 10 7s-3.5 7 -10 7s-10 -7 -10 -7" />
+    <circle {...line} cx="12" cy="12" r="3" />
+  </Svg>
+);
+
+/* Значки карточек и кнопок проекта (ProfileIcon в паспорте) */
+
+export const CalendarIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="4" y="5" width="16" height="16" rx="2" />
+    <path {...line} d="M16 3v4M8 3v4M4 11h16" />
+  </Svg>
+);
+
+export const BriefcaseIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="3" y="7" width="18" height="13" rx="2" />
+    <path {...line} d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2M3 13h18" />
+  </Svg>
+);
+
+export const ReceiptIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2" />
+    <path {...line} d="M9 8h6M9 12h6" />
+  </Svg>
+);
+
+export const BoxIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M12 3l8 4.5v9l-8 4.5l-8 -4.5v-9z" />
+    <path {...line} d="M12 12l8 -4.5M12 12v9M12 12l-8 -4.5" />
+  </Svg>
+);
+
+export const DocIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M14 3v5h5M14 3h-7a2 2 0 0 0 -2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-11z" />
+    <path {...line} d="M9 13h6M9 17h4" />
+  </Svg>
+);
+
+export const StarIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M12 3l2.8 5.8l6.2 .9l-4.5 4.4l1.1 6.2l-5.6 -3l-5.6 3l1.1 -6.2l-4.5 -4.4l6.2 -.9z" />
+  </Svg>
+);
+
+export const PinIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M12 21s-7 -6.5 -7 -12a7 7 0 0 1 14 0c0 5.5 -7 12 -7 12" />
+    <circle {...line} cx="12" cy="9" r="2.5" />
+  </Svg>
+);
+
+export const MoneyIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="3" y="6" width="18" height="12" rx="2" />
+    <circle {...line} cx="12" cy="12" r="2.5" />
+    <path {...line} d="M7 9.5v0M17 14.5v0" />
+  </Svg>
+);

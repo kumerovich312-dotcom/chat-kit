@@ -86,6 +86,14 @@
   --ck-ch-email: #a86b00;
   --ck-ch-other: #4d5867;
 
+  /* Цвета меток, карточек и статусов (паспорт проекта: tone) — постоянные, от акцента проекта не зависят */
+  --ck-blue: #1d4fa8;
+  --ck-blue-soft: #eaf1fd;
+  --ck-blue-line: #cfe0fa;
+  --ck-red: #b42318;
+  --ck-red-soft: #fdeceb;
+  --ck-red-line: #f4c7c3;
+
   /* Поиск внутри переписки */
   --ck-find: var(--ck-warn-line);
   --ck-find-current: var(--ck-warn);
@@ -1749,4 +1757,856 @@ a.ck-head__name:hover {
 }
 .ck-window__side > * + * {
   margin-top: 14px;
+}
+
+/* ── Новые части окна (решения пользователя 27.09.2026) ─────────────────────────────────────────────────────── */
+
+/* Спрятанное фильтром и прочее hidden — всегда спрятано, даже если у элемента свой display */
+.ck [hidden] {
+  display: none !important;
+}
+
+/* Цвета меток, карточек и статусов: .ck-tone--<цвет> задаёт тройку переменных */
+.ck-tone--accent { --ck-tone: var(--ck-accent-ink); --ck-tone-soft: var(--ck-accent-soft); --ck-tone-line: var(--ck-accent-line); }
+.ck-tone--blue { --ck-tone: var(--ck-blue); --ck-tone-soft: var(--ck-blue-soft); --ck-tone-line: var(--ck-blue-line); }
+.ck-tone--green { --ck-tone: var(--ck-ok); --ck-tone-soft: var(--ck-ok-soft); --ck-tone-line: var(--ck-ok-line); }
+.ck-tone--amber { --ck-tone: var(--ck-warn); --ck-tone-soft: var(--ck-warn-soft); --ck-tone-line: var(--ck-warn-line); }
+.ck-tone--red { --ck-tone: var(--ck-red); --ck-tone-soft: var(--ck-red-soft); --ck-tone-line: var(--ck-red-line); }
+.ck-tone--violet { --ck-tone: var(--ck-bot); --ck-tone-soft: var(--ck-bot-soft); --ck-tone-line: var(--ck-bot-line); }
+.ck-tone--gray { --ck-tone: var(--ck-sub); --ck-tone-soft: var(--ck-bg); --ck-tone-line: var(--ck-line); }
+.ck-badge[class*="ck-tone--"] {
+  border-color: var(--ck-tone-line);
+  background: var(--ck-tone-soft);
+  color: var(--ck-tone);
+}
+.ck-badge--xs {
+  padding: 0 6px;
+  font-size: 10.5px;
+  line-height: 1.6;
+}
+.ck-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--ck-tone, var(--ck-sub));
+}
+
+/* Нажатые кнопки шапки и фильтра */
+.ck-iconbtn[aria-pressed="true"],
+.ck-btn[aria-pressed="true"],
+.ck-chip[aria-pressed="true"],
+.ck-seg__item[aria-current="true"] {
+  border-color: var(--ck-accent-line);
+  background: var(--ck-accent-soft);
+  color: var(--ck-accent-ink);
+}
+.ck-chip[aria-pressed="true"],
+.ck-seg__item[aria-current="true"] {
+  font-weight: 600;
+}
+.ck-seg__item {
+  text-decoration: none;
+}
+
+/* Полоса под шапкой: метки, оценка ИИ, кто из коллег в диалоге, ответственный, статус */
+.ck-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--ck-line);
+  background: var(--ck-surface-soft);
+  font-size: var(--ck-text-sm);
+}
+.ck-strip__tags,
+.ck-strip__right,
+.ck-strip__mood {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ck-strip__right {
+  margin-left: auto;
+}
+.ck-strip__menu {
+  position: relative;
+  display: inline-flex;
+}
+.ck-strip__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--ck-line);
+  border-radius: 999px;
+  background: var(--ck-surface);
+  color: var(--ck-sub);
+  font: inherit;
+  font-size: var(--ck-text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ck-strip__btn:hover:not(:disabled) {
+  background: var(--ck-bg);
+}
+.ck-strip__btn:disabled {
+  cursor: default;
+}
+.ck-strip__btn .ck-icon,
+.ck-strip__presence .ck-icon,
+.ck-strip__muted .ck-icon,
+.ck-tag .ck-icon {
+  width: 13px;
+  height: 13px;
+}
+.ck-strip__muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ck-muted);
+}
+.ck-strip__presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ck-muted);
+}
+.ck-strip__presence--typing {
+  color: var(--ck-warn);
+  font-weight: 600;
+}
+.ck-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ck-ok);
+}
+.ck-status--snoozed .ck-status__dot {
+  background: var(--ck-warn);
+}
+.ck-status--closed .ck-status__dot {
+  background: var(--ck-line-strong);
+}
+.ck-status--closed {
+  color: var(--ck-muted);
+}
+
+/* Метка диалога */
+.ck-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--ck-tone-line, var(--ck-line));
+  border-radius: 999px;
+  background: var(--ck-tone-soft, var(--ck-bg));
+  color: var(--ck-tone, var(--ck-sub));
+  font: inherit;
+  font-size: var(--ck-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ck-tag--add {
+  border-style: dashed;
+  background: transparent;
+  color: var(--ck-muted);
+  font-weight: 500;
+  cursor: pointer;
+}
+.ck-tag--add:hover {
+  color: var(--ck-ink);
+}
+.ck-tag__x {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.ck-tag__x:hover {
+  opacity: 1;
+}
+.ck-tag__x .ck-icon {
+  width: 11px;
+  height: 11px;
+}
+
+/* Всплывающие меню, открытые вниз и вправо */
+.ck-pop--down {
+  top: calc(100% + 6px);
+  bottom: auto;
+  min-width: 200px;
+}
+.ck-pop--right {
+  right: 0;
+  left: auto;
+}
+.ck-pop__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ck-pop__check[aria-pressed="true"]::after {
+  content: "✓";
+  margin-left: auto;
+  color: var(--ck-accent-ink);
+  font-weight: 700;
+}
+
+/* Фильтр сообщений — строка над лентой */
+.ck-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ck-line);
+  background: var(--ck-surface);
+}
+.ck-filter__chips {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ck-filter__count {
+  color: var(--ck-muted);
+  font-size: var(--ck-text-xs);
+  white-space: nowrap;
+}
+
+/* «Кратко» — плашка сверху ленты */
+.ck-summary {
+  margin: 8px 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ck-accent-line);
+  border-radius: var(--ck-radius);
+  background: var(--ck-accent-faint);
+  color: var(--ck-body);
+}
+.ck-summary__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ck-accent-ink);
+  font-size: var(--ck-text-sm);
+}
+.ck-summary__at {
+  color: var(--ck-muted);
+  font-size: var(--ck-text-xs);
+}
+.ck-summary__text {
+  margin-top: 6px;
+  white-space: pre-line;
+}
+.ck-summary__wait {
+  color: var(--ck-muted);
+}
+.ck-summary__error {
+  color: var(--ck-danger);
+}
+.ck-summary__points {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.ck-summary__points li + li {
+  margin-top: 2px;
+}
+
+/* Все файлы клиента — галерея поверх окна */
+.ck-gallery {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(10 15 25 / 55%);
+}
+.ck-gallery__box {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 100%);
+  max-height: 100%;
+  border-radius: var(--ck-radius);
+  background: var(--ck-surface);
+  box-shadow: var(--ck-shadow);
+  overflow: hidden;
+}
+.ck-gallery__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ck-line);
+  font-size: var(--ck-text-lg);
+}
+.ck-gallery__count {
+  color: var(--ck-muted);
+  font-size: var(--ck-text-sm);
+}
+.ck-gallery__body {
+  padding: 4px 16px 16px;
+  overflow-y: auto;
+}
+.ck-gallery__h {
+  margin: 14px 0 8px;
+  color: var(--ck-sub);
+  font-size: var(--ck-text-sm);
+  font-weight: 600;
+}
+.ck-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+.ck-gallery__tile {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--ck-line);
+  border-radius: var(--ck-radius-sm);
+  background: var(--ck-bg);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.ck-gallery__tile img,
+.ck-gallery__tile video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ck-gallery__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 22px;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 60%);
+}
+.ck-gallery__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ck-gallery__list .ck-doc {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ck-gallery__audio {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Своя карточка проекта в ленте */
+.ck-card {
+  min-width: min(240px, 100%);
+  margin: 2px 0 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--ck-tone-line, var(--ck-line));
+  border-radius: var(--ck-radius);
+  background: var(--ck-surface);
+  color: var(--ck-body);
+}
+.ck-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ck-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  border-radius: 7px;
+  background: var(--ck-tone-soft, var(--ck-bg));
+  color: var(--ck-tone, var(--ck-sub));
+}
+.ck-card__icon .ck-icon {
+  width: 15px;
+  height: 15px;
+}
+.ck-card__title {
+  flex: 1;
+  min-width: 0;
+  color: var(--ck-ink);
+  font-weight: 600;
+}
+.ck-card__fields {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  margin: 8px 0 0;
+}
+.ck-card__fields dt {
+  color: var(--ck-muted);
+  font-size: var(--ck-text-sm);
+}
+.ck-card__fields dd {
+  margin: 0;
+  font-size: var(--ck-text-sm);
+}
+.ck-card__link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: var(--ck-text-sm);
+}
+
+/* Текст голосового и «Расшифровать» */
+.ck-transcript {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 4px 0 2px;
+}
+.ck-transcript__head {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ck-muted);
+  font: inherit;
+  font-size: var(--ck-text-xs);
+  cursor: pointer;
+}
+.ck-transcript__head .ck-icon {
+  width: 12px;
+  height: 12px;
+}
+.ck-transcript__text {
+  flex-basis: 100%;
+  padding: 6px 9px;
+  border-radius: var(--ck-radius-sm);
+  background: rgb(0 0 0 / 4%);
+  color: var(--ck-body);
+  font-size: var(--ck-text-sm);
+  white-space: pre-line;
+}
+.ck-transcript__error {
+  color: var(--ck-danger);
+  font-size: var(--ck-text-xs);
+}
+
+/* Цитата в пузыре: на какое сообщение ответили */
+.ck-quote {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 6px;
+  padding: 4px 8px;
+  border-left: 3px solid var(--ck-accent);
+  border-radius: 0 6px 6px 0;
+  background: rgb(0 0 0 / 4%);
+  color: inherit;
+  text-decoration: none;
+}
+a.ck-quote:hover {
+  background: rgb(0 0 0 / 7%);
+}
+.ck-msg--bot .ck-quote {
+  border-left-color: var(--ck-bot);
+}
+.ck-msg--in .ck-quote {
+  border-left-color: var(--ck-ok);
+}
+.ck-quote__who {
+  color: var(--ck-accent-ink);
+  font-size: var(--ck-text-xs);
+  font-weight: 600;
+}
+.ck-quote__text {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ck-sub);
+  font-size: var(--ck-text-sm);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* «Ответить» у сообщения — сбоку пузыря при наведении */
+.ck-msg {
+  position: relative;
+}
+.ck-msg__reply {
+  position: absolute;
+  top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--ck-line);
+  border-radius: 50%;
+  background: var(--ck-surface);
+  color: var(--ck-muted);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.ck-msg--in .ck-msg__reply {
+  right: -34px;
+}
+.ck-msg--out .ck-msg__reply,
+.ck-msg--bot .ck-msg__reply {
+  left: -34px;
+}
+.ck-msg:hover .ck-msg__reply,
+.ck-msg__reply:focus-visible {
+  opacity: 1;
+}
+.ck-msg__reply:hover {
+  color: var(--ck-accent-ink);
+}
+.ck-msg__reply .ck-icon {
+  width: 14px;
+  height: 14px;
+}
+@media (hover: none) {
+  .ck-msg__reply {
+    opacity: 0.65;
+  }
+}
+
+/* Над полем ввода: на что отвечаем; «коллега уже пишет ответ» */
+.ck-replybar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 6px 8px 6px 10px;
+  border-left: 3px solid var(--ck-accent);
+  border-radius: 0 var(--ck-radius-sm) var(--ck-radius-sm) 0;
+  background: var(--ck-accent-faint);
+  color: var(--ck-accent-ink);
+}
+.ck-replybar__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.ck-replybar__who {
+  font-size: var(--ck-text-xs);
+  font-weight: 600;
+}
+.ck-replybar__text {
+  overflow: hidden;
+  color: var(--ck-sub);
+  font-size: var(--ck-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ck-colleague {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  color: var(--ck-warn);
+  font-size: var(--ck-text-sm);
+  font-weight: 600;
+}
+.ck-colleague .ck-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Запись голосового — вместо поля ввода */
+.ck-rec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--ck-accent-line);
+  border-radius: 14px;
+  background: var(--ck-surface);
+}
+.ck-rec__dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: var(--ck-red);
+  animation: ck-pulse 1.1s ease-in-out infinite;
+}
+.ck-rec__time {
+  min-width: 38px;
+  color: var(--ck-sub);
+  font-size: var(--ck-text-sm);
+}
+.ck-rec__wave {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  min-width: 0;
+  overflow: hidden;
+}
+.ck-rec__wave i {
+  flex: 0 0 3px;
+  min-height: 3px;
+  border-radius: 2px;
+  background: var(--ck-voice);
+}
+.ck-rec__wave--done i {
+  background: var(--ck-line-strong);
+}
+.ck-rec__wave--done i.ck-rec__on {
+  background: var(--ck-voice);
+}
+@keyframes ck-pulse {
+  50% { opacity: 0.35; }
+}
+
+/* Свои кнопки проекта — меню «+» и маленькая форма над полем */
+.ck-quick__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ck-quick__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 7px;
+  background: var(--ck-accent-soft);
+  color: var(--ck-accent-ink);
+}
+.ck-quick__icon .ck-icon {
+  width: 15px;
+  height: 15px;
+}
+.ck-quick__form {
+  margin: 0 0 8px;
+  border-color: var(--ck-accent-line);
+  background: var(--ck-accent-faint);
+}
+.ck-quick__form .ck-draft__head {
+  color: var(--ck-accent-ink);
+}
+.ck-quick__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+.ck-quick__field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--ck-sub);
+  font-size: var(--ck-text-xs);
+}
+
+/* Щелчок по цитате — исходное сообщение мигает */
+.ck-flash {
+  animation: ck-flash 1.6s ease-out;
+}
+@keyframes ck-flash {
+  0%, 30% { box-shadow: 0 0 0 3px var(--ck-warn-line); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Сообщения раньше — наверху ленты */
+.ck-older {
+  padding: 4px 0 10px;
+  font-size: var(--ck-text-sm);
+  text-align: center;
+}
+.ck-older__wait {
+  color: var(--ck-muted);
+}
+
+/* Звонок: пропущенный — красным */
+.ck-call--missed .ck-call__head {
+  color: var(--ck-danger);
+}
+
+/* Список: «срочно», «недоволен» под именем, метки в строке, закрытые бледнее, строка статусов */
+.ck-row__mood {
+  display: flex;
+  gap: 4px;
+  margin: 1px 0 2px;
+}
+.ck-dot-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+  color: var(--ck-tone, var(--ck-sub));
+  font-size: var(--ck-text-xs);
+  font-weight: 600;
+}
+.ck-dot-tag::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.ck-row--closed {
+  opacity: 0.72;
+}
+.ck-chips--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ck-chip--tag {
+  border-color: var(--ck-tone-line, var(--ck-line));
+  color: var(--ck-tone, var(--ck-sub));
+}
+.ck-chip--tag[aria-current="true"] {
+  background: var(--ck-tone-soft, var(--ck-bg));
+  color: var(--ck-tone, var(--ck-ink));
+}
+.ck-count--muted {
+  background: var(--ck-line-strong);
+  color: var(--ck-ink);
+}
+
+/* ── Тёмная тема ──────────────────────────────────────────────────────────────────────────────────────────────
+   Включается атрибутом data-ck-theme="dark" на <html> (или на любом блоке с окном); "auto" — как в системе.
+   Проект, который задал свои светлые цвета в :root, задаёт и тёмные — своим правилом для [data-ck-theme="dark"]. */
+
+:where([data-ck-theme="dark"]) {
+  color-scheme: dark;
+  --ck-bg: #0f141b;
+  --ck-surface: #161d26;
+  --ck-surface-soft: #1a222d;
+  --ck-ink: #e7ecf2;
+  --ck-body: #d4dce6;
+  --ck-sub: #aab5c2;
+  --ck-muted: #8e9aa9;
+  --ck-line: #2a3441;
+  --ck-line-soft: #222b36;
+  --ck-line-strong: #3b4757;
+  --ck-accent: #5b8def;
+  --ck-accent-dark: #8fb3ff;
+  --ck-accent-soft: #1b2a44;
+  --ck-accent-line: #2d4674;
+  --ck-accent-faint: #152033;
+  --ck-accent-ink: #b9cffb;
+  --ck-link: #7ea6f5;
+  --ck-link-hover: #a9c4fa;
+  --ck-tick: #7ea6f5;
+  --ck-voice: #7ea6f5;
+  --ck-bot: #aea2f7;
+  --ck-bot-soft: #241f3f;
+  --ck-bot-line: #3d3569;
+  --ck-ok: #4cc9a0;
+  --ck-ok-soft: #10261f;
+  --ck-ok-line: #1f4b3d;
+  --ck-warn: #f0b44c;
+  --ck-warn-soft: #2a2110;
+  --ck-warn-line: #4e3c17;
+  --ck-danger: #f08a5d;
+  --ck-danger-soft: #2c1a12;
+  --ck-danger-line: #5a3120;
+  --ck-blue: #8fb3ff;
+  --ck-blue-soft: #1b2a44;
+  --ck-blue-line: #2d4674;
+  --ck-red: #ff8a80;
+  --ck-red-soft: #33171a;
+  --ck-red-line: #5c2a2c;
+  --ck-shadow: 0 10px 28px rgb(0 0 0 / 45%);
+  --ck-out-meta: rgb(185 207 251 / 70%);
+  --ck-bot-meta: rgb(174 162 247 / 75%);
+  --ck-ch-whatsapp: #3fbf8f;
+  --ck-ch-telegram: #5b9cf0;
+  --ck-ch-instagram: #aea2f7;
+  --ck-ch-vk: #7ea6f5;
+  --ck-ch-max: #aea2f7;
+  --ck-ch-avito: #f0b44c;
+  --ck-ch-email: #f0b44c;
+  --ck-ch-other: #aab5c2;
+  --ck-find: #5a4a1d;
+  --ck-find-current: #f0b44c;
+  --ck-find-current-text: #1a1a1a;
+}
+@media (prefers-color-scheme: dark) {
+  :where([data-ck-theme="auto"]) {
+    color-scheme: dark;
+    --ck-bg: #0f141b;
+    --ck-surface: #161d26;
+    --ck-surface-soft: #1a222d;
+    --ck-ink: #e7ecf2;
+    --ck-body: #d4dce6;
+    --ck-sub: #aab5c2;
+    --ck-muted: #8e9aa9;
+    --ck-line: #2a3441;
+    --ck-line-soft: #222b36;
+    --ck-line-strong: #3b4757;
+    --ck-accent: #5b8def;
+    --ck-accent-dark: #8fb3ff;
+    --ck-accent-soft: #1b2a44;
+    --ck-accent-line: #2d4674;
+    --ck-accent-faint: #152033;
+    --ck-accent-ink: #b9cffb;
+    --ck-link: #7ea6f5;
+    --ck-link-hover: #a9c4fa;
+    --ck-tick: #7ea6f5;
+    --ck-voice: #7ea6f5;
+    --ck-bot: #aea2f7;
+    --ck-bot-soft: #241f3f;
+    --ck-bot-line: #3d3569;
+    --ck-ok: #4cc9a0;
+    --ck-ok-soft: #10261f;
+    --ck-ok-line: #1f4b3d;
+    --ck-warn: #f0b44c;
+    --ck-warn-soft: #2a2110;
+    --ck-warn-line: #4e3c17;
+    --ck-danger: #f08a5d;
+    --ck-danger-soft: #2c1a12;
+    --ck-danger-line: #5a3120;
+    --ck-blue: #8fb3ff;
+    --ck-blue-soft: #1b2a44;
+    --ck-blue-line: #2d4674;
+    --ck-red: #ff8a80;
+    --ck-red-soft: #33171a;
+    --ck-red-line: #5c2a2c;
+    --ck-shadow: 0 10px 28px rgb(0 0 0 / 45%);
+    --ck-out-meta: rgb(185 207 251 / 70%);
+    --ck-bot-meta: rgb(174 162 247 / 75%);
+    --ck-ch-whatsapp: #3fbf8f;
+    --ck-ch-telegram: #5b9cf0;
+    --ck-ch-instagram: #aea2f7;
+    --ck-ch-vk: #7ea6f5;
+    --ck-ch-max: #aea2f7;
+    --ck-ch-avito: #f0b44c;
+    --ck-ch-email: #f0b44c;
+    --ck-ch-other: #aab5c2;
+    --ck-find: #5a4a1d;
+    --ck-find-current: #f0b44c;
+    --ck-find-current-text: #1a1a1a;
+  }
+}
+/* В тёмной теме подложки «немного темнее» — светлее */
+:where([data-ck-theme="dark"]) .ck-quote,
+:where([data-ck-theme="dark"]) .ck-transcript__text {
+  background: rgb(255 255 255 / 6%);
 }

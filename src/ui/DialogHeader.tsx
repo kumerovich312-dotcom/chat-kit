@@ -1,14 +1,17 @@
 import type { ReactNode } from "react";
 import { channelLabel } from "../core/channels.js";
+import { DEFAULT_TEXTS, type Texts } from "../core/profile.js";
 import { Avatar, ChannelIcon } from "./bits.js";
 import { ChatFindButton } from "./ChatFind.js";
 import { ChevronIcon } from "./icons.js";
 import type { LinkLike } from "./DialogList.js";
+import { FilterButton, GalleryButton, SummaryButton } from "./Panels.js";
 
-/* Шапка открытого диалога: кружок, имя (ссылка на карточку клиента), канал и контакт, лупа поиска по переписке и кнопки
-   проекта (позвонить, WhatsApp / Telegram, заявка, кнопки бота). На телефоне слева — «‹» к списку диалогов. */
+/* Шапка открытого диалога: кружок, имя (ссылка на карточку клиента), канал и контакт, «Кратко», лупа поиска, фильтр
+   сообщений, все файлы клиента и кнопки проекта (позвонить, WhatsApp / Telegram, заявка, кнопки бота). На телефоне
+   слева — «‹» к списку диалогов. Кнопки «Кратко», фильтра и файлов открывают свои части окна (Panels). */
 
-export function DialogHeader({ name, channel, contact, note, cardHref, backHref, actions, Link, find = true }: {
+export function DialogHeader({ name, channel, contact, note, cardHref, backHref, actions, Link, find = true, filter = false, gallery = false, summary = false, files, t = DEFAULT_TEXTS }: {
   name: string;
   channel?: string | null | undefined;
   /** Телефон, почта, @ник — или «контакт скрыт» */
@@ -20,6 +23,14 @@ export function DialogHeader({ name, channel, contact, note, cardHref, backHref,
   actions?: ReactNode;
   Link?: LinkLike | undefined;
   find?: boolean | undefined;
+  /** Кнопка фильтра сообщений */
+  filter?: boolean | undefined;
+  /** Кнопка «все файлы клиента»; files — сколько их */
+  gallery?: boolean | undefined;
+  files?: number | undefined;
+  /** Кнопка «Кратко» */
+  summary?: boolean | undefined;
+  t?: Texts | undefined;
 }) {
   const L = Link;
   const nameNode = cardHref
@@ -37,7 +48,10 @@ export function DialogHeader({ name, channel, contact, note, cardHref, backHref,
         </div>
       </div>
       <div className="ck-head__actions">
+        {summary ? <SummaryButton t={t} /> : null}
         {find ? <ChatFindButton /> : null}
+        {filter ? <FilterButton t={t} /> : null}
+        {gallery ? <GalleryButton t={t} count={files} /> : null}
         {actions}
       </div>
     </div>

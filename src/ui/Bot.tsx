@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { BotState } from "../core/conversation.js";
 import { botStateText } from "../core/conversation.js";
+import { DEFAULT_TEXTS, fill, type Texts } from "../core/profile.js";
 import { untilText } from "../core/time.js";
 import { MuteIcon, PauseIcon, PencilIcon, PlayIcon, SparkIcon, ThumbIcon } from "./icons.js";
 
@@ -20,12 +21,14 @@ import { MuteIcon, PauseIcon, PencilIcon, PlayIcon, SparkIcon, ThumbIcon } from 
 type FormAction = (form: FormData) => void | Promise<void>;
 
 /** Кнопки бота. header — пометка и кнопки в шапке диалога (по умолчанию); bar — полосой над лентой; buttons — только кнопки */
-export function BotControls({ state, action, variant = "header", timeZone }: {
+export function BotControls({ state, action, variant = "header", timeZone, t = DEFAULT_TEXTS }: {
   state: BotState;
   action: FormAction;
   variant?: "header" | "bar" | "buttons" | undefined;
   /** Пояс компании — «пауза до 18:30» по нему */
   timeZone?: string | undefined;
+  /** Надписи со словами отрасли (паспорт проекта) */
+  t?: Texts | undefined;
 }) {
   const [busy, start] = useTransition();
   const canPause = state.canPause ?? true;
@@ -37,30 +40,30 @@ export function BotControls({ state, action, variant = "header", timeZone }: {
     await action(fd);
   });
   const until = (iso: string) => untilText(iso, timeZone);
-  const text = botStateText(state, until) ?? "бот ведёт диалог";
+  const text = botStateText(state, until, t) ?? t.botLeads;
   // В шапке — коротко: место под кнопки
-  const short = state.mode === "muted" ? "бот не отвечает" : state.mode === "manager" ? (state.pausedUntil ? `бот на паузе до ${until(state.pausedUntil)}` : "бот на паузе") : state.handoff === "requested" ? "бот позвал человека" : "бот ведёт диалог";
+  const short = state.mode === "muted" ? t.botMutedShort : state.mode === "manager" ? (state.pausedUntil ? fill(t.botPausedUntil, { until: until(state.pausedUntil) }) : t.botPaused) : state.handoff === "requested" ? t.botCalled : t.botLeads;
   const compact = variant !== "bar";
   const dot = state.mode === "muted" ? " ck-botbar__dot--muted" : state.mode === "manager" ? " ck-botbar__dot--paused" : "";
   const sm = variant === "bar" ? "ck-btn ck-btn--sm" : "ck-btn ck-btn--sm";
   const buttons = (
     <>
       {state.mode === "bot" && canPause ? (
-        <button type="button" className={`${sm} ck-btn--bot`} disabled={busy} onClick={send("pause", 12)} title="Бот замолчит на 12 часов — отвечает человек">
-          <PauseIcon /> Пауза бота
+        <button type="button" className={`${sm} ck-btn--bot`} disabled={busy} onClick={send("pause", 12)} title={t.botPauseTitle}>
+          <PauseIcon /> {t.botPause}
         </button>
       ) : null}
       {state.mode === "manager" && canPause ? (
-        <button type="button" className={`${sm} ck-btn--bot`} disabled={busy} onClick={send("resume")} title="Бот ответит на следующее сообщение клиента">
-          <PlayIcon /> Вернуть боту
+        <button type="button" className={`${sm} ck-btn--bot`} disabled={busy} onClick={send("resume")} title={t.botResumeTitle}>
+          <PlayIcon /> {t.botResume}
         </button>
       ) : null}
       {canMute ? (
         state.mode === "muted" ? (
-          <button type="button" className={sm} disabled={busy} onClick={send("unmute")} title="Бот снова может отвечать этому клиенту">{compact ? "Разрешить боту" : "Бот снова может отвечать"}</button>
+          <button type="button" className={sm} disabled={busy} onClick={send("unmute")} title={t.botUnmuteTitle}>{compact ? t.botUnmute : t.botUnmuteLong}</button>
         ) : (
-          <button type="button" className={sm} disabled={busy} onClick={send("mute")} title="Не отвечать этому клиенту: бот не будет отвечать ему ни в одном канале — пишет только человек">
-            <MuteIcon /> {compact ? "Не отвечать" : "Не отвечать этому клиенту"}
+          <button type="button" className={sm} disabled={busy} onClick={send("mute")} title={t.botMuteTitle}>
+            <MuteIcon /> {compact ? t.botMute : t.botMuteLong}
           </button>
         )
       ) : null}
@@ -69,7 +72,7 @@ export function BotControls({ state, action, variant = "header", timeZone }: {
   if (variant === "buttons") return <span className="ck-head__actions">{buttons}</span>;
   if (variant === "header") {
     return (
-      <span className="ck-head__actions" role="group" aria-label="Бот в этом диалоге">
+      <span className="ck-head__actions" role="group" aria-label={t.botGroup}>
         <span className="ck-botstate" title={state.reason ? `${text} — ${state.reason}` : text}>
           <span className={`ck-botbar__dot${dot}`} aria-hidden="true" />
           {short}
@@ -79,7 +82,7 @@ export function BotControls({ state, action, variant = "header", timeZone }: {
     );
   }
   return (
-    <div className="ck-botbar" role="group" aria-label="Бот в этом диалоге">
+    <div className="ck-botbar" role="group" aria-label={t.botGroup}>
       <span className="ck-botbar__state"><span className={`ck-botbar__dot${dot}`} aria-hidden="true" />{text}</span>
       {buttons}
     </div>
@@ -129,7 +132,7 @@ export type Rating = "good" | "fix" | "dangerous";
 
 /** Оценка ответа бота: «хорошо» одним нажатием; «как надо было» и «опасно» — причина и правильный ответ.
  *  Форма: message_id, rating (good / fix / dangerous), reasons (через запятую), ideal_reply */
-export function BotFeedback({ messageId, action, given }: { messageId: string; action: FormAction; given?: Rating | null | undefined }) {
+export function BotFeedback({ messageId, action, given, t = DEFAULT_TEXTS }: { messageId: string; action: FormAction; given?: Rating | null | undefined; t?: Texts | undefined }) {
   const [rating, setRating] = useState<Rating | null>(null);
   const [done, setDone] = useState<Rating | null>(given ?? null);
   const [reasons, setReasons] = useState<string[]>([]);
@@ -148,7 +151,7 @@ export function BotFeedback({ messageId, action, given }: { messageId: string; a
   if (done && !rating) {
     return (
       <span className={`ck-badge ${done === "good" ? "ck-badge--ok" : done === "fix" ? "ck-badge--warn" : "ck-badge--danger"}`}>
-        {done === "good" ? "✓ хороший ответ" : done === "fix" ? "✎ бот научится: как надо было" : "⚠ отмечено: опасный ответ"}
+        {done === "good" ? "✓ хороший ответ" : done === "fix" ? t.teachFixDone : "⚠ отмечено: опасный ответ"}
         <button type="button" className="ck-link" onClick={() => setRating(done)} style={{ marginLeft: 4, fontSize: "inherit" }}>изменить</button>
       </span>
     );
@@ -173,7 +176,7 @@ export function BotFeedback({ messageId, action, given }: { messageId: string; a
           </button>
         ))}
       </div>
-      <textarea value={ideal} onChange={(e) => setIdeal(e.target.value)} rows={3} className="ck-textarea" placeholder="Как надо было ответить — бот научится на этом примере" />
+      <textarea value={ideal} onChange={(e) => setIdeal(e.target.value)} rows={3} className="ck-textarea" placeholder={t.teachIdealPlaceholder} />
       <div className="ck-draft__actions">
         <button type="button" className="ck-btn ck-btn--sm ck-btn--primary" disabled={busy || (!ideal.trim() && reasons.length === 0)} onClick={() => submit(rating)}>Сохранить</button>
         <button type="button" className="ck-link" onClick={() => setRating(null)}>отмена</button>
@@ -184,7 +187,7 @@ export function BotFeedback({ messageId, action, given }: { messageId: string; a
 
 /** «Сделать примером для бота» у ответа менеджера: пара «вопрос клиента → ответ менеджера» уходит в студию на одобрение.
  *  Форма: message_id, note (к чему пример: «возражение: дорого») */
-export function TeachExample({ messageId, action, sent: already = false }: { messageId: string; action: FormAction; sent?: boolean | undefined }) {
+export function TeachExample({ messageId, action, sent: already = false, t = DEFAULT_TEXTS }: { messageId: string; action: FormAction; sent?: boolean | undefined; t?: Texts | undefined }) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const [sent, setSent] = useState(already);
@@ -192,14 +195,14 @@ export function TeachExample({ messageId, action, sent: already = false }: { mes
   if (sent) return <span className="ck-badge ck-badge--bot">✓ пример ушёл в студию на одобрение</span>;
   if (!open) {
     return (
-      <button type="button" className="ck-btn ck-btn--sm ck-btn--ghost ck-teach__example" onClick={() => setOpen(true)} title="Хороший ответ — бот будет отвечать так же, когда вы одобрите пример в студии">
-        <SparkIcon /> Сделать примером для бота
+      <button type="button" className="ck-btn ck-btn--sm ck-btn--ghost ck-teach__example" onClick={() => setOpen(true)} title={t.teachExampleTitle}>
+        <SparkIcon /> {t.teachExample}
       </button>
     );
   }
   return (
     <div className="ck-draft ck-teach__form">
-      <div className="ck-draft__head"><SparkIcon /> Пример для бота: вопрос клиента выше → этот ответ</div>
+      <div className="ck-draft__head"><SparkIcon /> {t.teachExampleHead}</div>
       <input value={note} onChange={(e) => setNote(e.target.value)} className="ck-input" placeholder="К чему пример (по желанию): «возражение: дорого», «сроки визы»" />
       <div className="ck-draft__actions">
         <button type="button" className="ck-btn ck-btn--sm ck-btn--primary" disabled={busy}
@@ -223,11 +226,12 @@ export type MemoryFact = {
 };
 
 /** Что бот знает о клиенте — рядом с перепиской. Поправить и удалить (форма: key, value, remove=1) */
-export function BotMemory({ facts, action, title = "Что бот знает о клиенте", updatedAt }: {
+export function BotMemory({ facts, action, title, updatedAt, t = DEFAULT_TEXTS }: {
   facts: readonly MemoryFact[];
   action?: FormAction | undefined;
   title?: string | undefined;
   updatedAt?: string | null | undefined;
+  t?: Texts | undefined;
 }) {
   const [edit, setEdit] = useState<string | null>(null);
   const [value, setValue] = useState("");
@@ -243,8 +247,8 @@ export function BotMemory({ facts, action, title = "Что бот знает о 
   });
   return (
     <div className="ck-memory">
-      <div className="ck-memory__head"><SparkIcon /> {title}</div>
-      {facts.length === 0 ? <div className="ck-memory__empty">Бот пока ничего не узнал — узнает из разговора.</div> : null}
+      <div className="ck-memory__head"><SparkIcon /> {title ?? t.memoryTitle}</div>
+      {facts.length === 0 ? <div className="ck-memory__empty">{t.memoryEmpty}</div> : null}
       {facts.map((f) => (
         <div key={f.key} className="ck-memory__row">
           <span className="ck-memory__label">{f.label}</span>
@@ -258,7 +262,7 @@ export function BotMemory({ facts, action, title = "Что бот знает о 
           ) : (
             <span className="ck-memory__value">
               {f.value}
-              {f.source === "crm" ? <span className="ck-memory__src" title="Из карточки клиента">CRM</span> : f.source === "admin" ? <span className="ck-memory__src" title="Поправили вручную">вручную</span> : null}
+              {f.source === "crm" ? <span className="ck-memory__src" title={t.memoryFromCard}>CRM</span> : f.source === "admin" ? <span className="ck-memory__src" title="Поправили вручную">вручную</span> : null}
               {action ? <button type="button" className="ck-link" onClick={() => { setEdit(f.key); setValue(f.value); }}>изменить</button> : null}
             </span>
           )}

@@ -18,6 +18,10 @@ export type ComposerDraft = {
   file: File | null;
   /** Файл проекта (например, документ из заявки клиента) — его номер */
   fileId: string | null;
+  /** Ответ на сообщение — его номер в базе проекта (цитата) */
+  replyTo: string | null;
+  /** Файл — голосовое, записанное в браузере */
+  voice: boolean;
 };
 
 export const COMPOSER_MAX_TEXT = 4000;
@@ -35,8 +39,26 @@ export function readComposerForm(form: FormData): ComposerDraft {
     subject: form.get("subject") !== null ? String(form.get("subject")).trim().slice(0, 200) : null,
     file: typeof File !== "undefined" && file instanceof File && file.size > 0 ? file : null,
     fileId: fileId || null,
+    replyTo: String(form.get("reply_to") ?? "").trim() || null,
+    voice: form.get("voice") === "1",
   };
 }
+
+/** Кнопка проекта из меню «+» (паспорт: actions): какая кнопка и что заполнили в её форме */
+export type ActionDraft = { actionId: string; values: Record<string, string> };
+
+/** Форма кнопки проекта → { actionId, values }. Значения — строками до 2000 знаков */
+export function readActionForm(form: FormData): ActionDraft {
+  const values: Record<string, string> = {};
+  for (const [k, v] of form.entries()) {
+    if (k === "action_id" || typeof v !== "string") continue;
+    values[k] = v.trim().slice(0, 2000);
+  }
+  return { actionId: String(form.get("action_id") ?? ""), values };
+}
+
+/** Ответ помощника ИИ полю и ленте: текст (расшифровка, улучшенный текст, краткое содержание) или причина */
+export type AiAnswer = { text?: string | undefined; points?: readonly string[] | undefined; error?: string | undefined };
 
 /** Ответ проекта полю ввода: ошибка — поле покажет её и вернёт текст, чтобы не набирать заново */
 export type SendResult = { ok?: boolean | undefined; error?: string | undefined } | void;

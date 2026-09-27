@@ -26,12 +26,14 @@ export type WaitAlertsProps = {
   isOpen?: ((contactId: string) => boolean) | undefined;
   /** Открыть диалог (щелчок по окошку или «Ответить») */
   onOpen: (contactId: string) => void;
+  /** Текст окошка без сообщения — из паспорта: texts.alertClientWrote («Пациент написал») */
+  clientWrote?: string | undefined;
 };
 
 const CARD_MS = 12_000;
 
 /** Следит за ожиданиями и зовёт: звук, окошко браузера или карточка в углу. Рисует карточку сам */
-export function WaitAlerts({ waitList, delay = 0, recheck, isOpen, onOpen }: WaitAlertsProps) {
+export function WaitAlerts({ waitList, delay = 0, recheck, isOpen, onOpen, clientWrote = "Клиент написал" }: WaitAlertsProps) {
   const [card, setCard] = useState<WaitEpisode | null>(null);
   const known = useRef(new Set<string>());
   const baseline = useRef(true);
@@ -77,7 +79,7 @@ export function WaitAlerts({ waitList, delay = 0, recheck, isOpen, onOpen }: Wai
           setCard(ep);
           cardTimer.current = window.setTimeout(() => setCard(null), CARD_MS);
         } else {
-          popup(`Ждёт ответа: ${ep.name}`, ep.text || "Клиент написал", () => go(ep.contactId), `chat-kit-wait-${ep.contactId}`);
+          popup(`Ждёт ответа: ${ep.name}`, ep.text || clientWrote, () => go(ep.contactId), `chat-kit-wait-${ep.contactId}`);
         }
       }, delay));
     }
