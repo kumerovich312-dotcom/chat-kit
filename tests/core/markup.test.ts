@@ -3,11 +3,11 @@ import { formatForChannel, parseRich, stripRich } from "../../src/core/markup.js
 
 describe("parseRich — разметка для окна переписки", () => {
   it("**жирный** и *курсив* от ИИ", () => {
-    expect(parseRich("Вакансии: **сварщик** и *повар*")).toEqual([
-      { t: "text", v: "Вакансии: " },
-      { t: "b", c: [{ t: "text", v: "сварщик" }] },
+    expect(parseRich("Услуги: **консультация** и *доставка*")).toEqual([
+      { t: "text", v: "Услуги: " },
+      { t: "b", c: [{ t: "text", v: "консультация" }] },
       { t: "text", v: " и " },
-      { t: "i", c: [{ t: "text", v: "повар" }] },
+      { t: "i", c: [{ t: "text", v: "доставка" }] },
     ]);
   });
 

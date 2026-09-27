@@ -2,7 +2,7 @@ import type { DumpLine } from "./parse.js";
 import { isHandoff } from "./parse.js";
 import type { MediaRef } from "./media.js";
 
-/* Раскладка «Полного диалога» Nextbot на сообщения — без базы. Перенесено из Атласа (handleIncoming, ветка дампа):
+/* Раскладка «Полного диалога» Nextbot на сообщения — без базы:
    что из дампа уже записано, где новое сообщение встанет в истории и какие файлы забрать.
 
    Время реплики: минута — из дампа (Nextbot пишет до минуты и по Гринвичу), а внутри минуты — строго после предыдущей
@@ -15,7 +15,7 @@ export type KnownLine = { at: number; id: string; hasFile: boolean };
 
 export type PlanInput = {
   lines: readonly DumpLine[];
-  /** Ключ повтора каждой строки: «nb:<диалог>:<sha1(время|автор|текст)[0..32]>» — как в Атласе */
+  /** Ключ повтора каждой строки: «nb:<диалог>:<sha1(время|автор|текст)[0..32]>» — не менять: по нему узнаются уже записанные строки */
   eids: readonly string[];
   /** Строки, уже записанные в переписку (по ключу) — время и есть ли у них файл */
   knownEid: ReadonlyMap<string, KnownLine>;

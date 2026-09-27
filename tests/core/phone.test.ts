@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dialNumber, fmtPhone, maskPhone, normalizePhone, phoneCodeOfCountry, phoneDigits, phoneSearchDigits, phoneTail, samePhone } from "../../src/core/phone.js";
 
-// Проверки телефонов перенесены из Атласа (scripts/checks/test-units.mjs). Номера — вымышленные (нули), смысл каждого
+// Проверки телефонов. Номера — вымышленные (нули), смысл каждого
 // случая сохранён: какая приставка, какая длина, какой код страны.
 
 describe("normalizePhone — единый вид +996…", () => {
@@ -67,7 +67,7 @@ describe("normalizePhone — единый вид +996…", () => {
     expect(phoneTail("0555 00-00-01")).toBe(phoneTail("+996 555 000 001"));
   });
 
-  it("код страны по стране из настроек (как у TishCRM: KG)", () => {
+  it("код страны по стране из настроек компании (KG)", () => {
     expect(phoneCodeOfCountry("KG")).toBe("+996");
     expect(phoneCodeOfCountry("kz")).toBe("+7");
     expect(phoneCodeOfCountry("HR")).toBe("");

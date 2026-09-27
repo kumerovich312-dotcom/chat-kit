@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { beep, claimOnce, enableNotifications, forgetOldNotified, notifyEnabled, NOTIFY_EVENT, popup, primeAudio, setNotifyEnabled } from "./notify.js";
 import { ChatIcon } from "./icons.js";
 
-/* «Клиент ждёт ответа» — звук и окошко (правило Атласа, решение пользователя 26.09.2026 «правильно ли дают сигналы»):
+/* «Клиент ждёт ответа» — звук и окошко:
    - один звонок на одно ожидание: ключ — клиент и с какого времени он ждёт (waitKey). Дописал ещё пару сообщений, пока
      ждёт, — второй раз не звоним;
    - если отвечает бот — звоним через delay (~40 с) и только если клиенту по-прежнему нужен человек (recheck): бот не

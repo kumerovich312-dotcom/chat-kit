@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 
-/* Настройки связи с Nextbot — без базы. Перенесено из Атласа (src/lib/nextbot.ts). */
+/* Настройки связи с Nextbot — без базы. */
 
-/** Ключ компании для приёма событий: «nb_» + 48 знаков. Хранит проект (у Атласа — nextbot_settings.api_key) */
+/** Ключ компании для приёма событий: «nb_» + 48 знаков. Хранит проект в своих настройках */
 export function newNextbotKey(): string {
   return "nb_" + randomBytes(24).toString("hex");
 }

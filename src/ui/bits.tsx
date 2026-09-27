@@ -13,7 +13,7 @@ const GLYPH: Record<string, Glyph> = {
   site: "globe", email: "mail", sms: "bubble", nextbot: "bubble", test: "bubble", call: "handset",
 };
 
-/** Значок канала — цветной кружок со знаком (как в Атласе): зелёный WhatsApp, синий Telegram, фиолетовый Instagram */
+/** Значок канала — цветной кружок со знаком: зелёный WhatsApp, синий Telegram, фиолетовый Instagram */
 export function ChannelIcon({ channel, size = 16, className }: { channel: string | null | undefined; size?: number; className?: string | undefined }) {
   const ch = channel ?? "nextbot";
   const glyph = GLYPH[ch] ?? "bubble";

@@ -8,7 +8,7 @@ import { BoltIcon, ClipIcon, CloseIcon, SendIcon } from "./icons.js";
 import { usePending } from "./Pending.js";
 import { BotDraft } from "./Bot.js";
 
-/* Поле ввода — как в мессенджере (Атлас, 26.09.2026): Enter отправляет, Shift+Enter — новая строка, сообщение сразу видно
+/* Поле ввода — как в мессенджере: Enter отправляет, Shift+Enter — новая строка, сообщение сразу видно
    в ленте с часиками, курсор остаётся в поле. Вкладки над полем — по желанию проекта:
    «Клиенту» — ответ уходит в мессенджер, откуда клиент написал; «В историю» — клиент пишет не через подключённый канал:
    сохраняем копию (нашу реплику или ответ клиента); «Заметка» — только для команды; «Письмо» — на почту клиента
@@ -35,11 +35,11 @@ export type ComposerProps = {
   /** Какие вкладки показать (по умолчанию — все подходящие) */
   modes?: readonly ComposerMode[] | undefined;
   templates?: readonly Template[] | undefined;
-  /** Подписи разделов шаблонов: { deal: "По сделке клиента" } */
+  /** Подписи разделов шаблонов: { order: "По заказу клиента" } */
   templateGroups?: Readonly<Record<string, string>> | undefined;
   /** «Свои шаблоны — в настройках» */
   templatesHref?: string | null | undefined;
-  /** Файлы клиенту: с компьютера (upload) и/или файлы проекта (скан из сделки) */
+  /** Файлы клиенту: с компьютера (upload) и/или файлы проекта (документы из заявки клиента) */
   files?: {
     upload?: boolean | undefined;
     accept?: string | undefined;

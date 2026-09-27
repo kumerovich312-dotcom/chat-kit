@@ -16,7 +16,7 @@ export type ComposerDraft = {
   subject: string | null;
   /** Файл с компьютера */
   file: File | null;
-  /** Файл проекта (скан из сделки) — его номер */
+  /** Файл проекта (например, документ из заявки клиента) — его номер */
   fileId: string | null;
 };
 
@@ -41,5 +41,5 @@ export function readComposerForm(form: FormData): ComposerDraft {
 /** Ответ проекта полю ввода: ошибка — поле покажет её и вернёт текст, чтобы не набирать заново */
 export type SendResult = { ok?: boolean | undefined; error?: string | undefined } | void;
 
-/** Шаблон ответа: название в меню и текст, который подставится в поле. group — раздел меню («По сделке клиента») */
+/** Шаблон ответа: название в меню и текст, который подставится в поле. group — раздел меню («По заказу клиента») */
 export type Template = { label: string; text: string; group?: string | undefined };

@@ -16,7 +16,7 @@ export type DialogSummary = {
   waitSince?: string | null | undefined;
   /** Сколько сообщений клиента не прочитано */
   unread?: number | undefined;
-  /** Строка под текстом: сделка, запись к врачу, «новое обращение» — что решит проект */
+  /** Строка под текстом: заявка, запись, заказ, «новое обращение» — что решит проект */
   subtitle?: string | null | undefined;
   /** Найдено поиском в сообщении (не в последнем) — показать его вместо последнего */
   found?: { text: string; at: string } | null | undefined;

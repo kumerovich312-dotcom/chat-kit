@@ -6,7 +6,7 @@ import { ChevronIcon } from "./icons.js";
 import type { LinkLike } from "./DialogList.js";
 
 /* Шапка открытого диалога: кружок, имя (ссылка на карточку клиента), канал и контакт, лупа поиска по переписке и кнопки
-   проекта (позвонить, WhatsApp / Telegram, сделка, кнопки бота). На телефоне слева — «‹» к списку диалогов. */
+   проекта (позвонить, WhatsApp / Telegram, заявка, кнопки бота). На телефоне слева — «‹» к списку диалогов. */
 
 export function DialogHeader({ name, channel, contact, note, cardHref, backHref, actions, Link, find = true }: {
   name: string;

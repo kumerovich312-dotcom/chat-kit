@@ -23,7 +23,7 @@ npm install https://github.com/kumerovich312-dotcom/chat-kit/releases/download/v
 import "@muras/chat-kit/styles.css";
 ```
 
-Свои цвета — переменными в своём CSS (`globals.css`), например у TishCRM:
+Свои цвета — переменными в своём CSS (`globals.css`), например зелёная тема:
 
 ```css
 :root {
@@ -62,9 +62,8 @@ export function chatStore(orgId: number): ChatStore {
 }
 ```
 
-Образец целиком — `src/server/memory-store.ts` (переходник «в памяти»). Перевод авторов в свои поля: у Атласа
-`messages.sender` client / bot / manager / phone, у TishCRM — `authorFromTish` / `authorToTish` из
-`@muras/chat-kit/wa-gateway`.
+Образец целиком — `src/server/memory-store.ts` (переходник «в памяти»). Автор сообщения переводится в свои поля,
+например `messages.sender`: client / bot / manager / phone.
 
 ## 4. Приём уведомлений канала
 
@@ -111,7 +110,7 @@ export async function sendMessage(clientId: number, form: FormData) {
 ```
 
 Файл клиенту в Nextbot или студию уходит ссылкой без входа на сутки — `signFileLink` (`@muras/chat-kit/server`),
-проверка на своём адресе файлов — `verifyFileLink` (подписи совместимы с прежними ссылками Атласа и TishCRM).
+проверка на своём адресе файлов — `verifyFileLink` (подписи вида «file» и «media» — если у проекта такие ссылки уже есть, они продолжают работать).
 
 ## 6. Страница «Переписка»
 
@@ -155,7 +154,7 @@ const WAIT_SINCE = waitSinceSql({
 
 Вложения открываются по `Attachment.url` проекта с проверкой прав. Нужно: правильный `Content-Type` (голосовое —
 `audio/ogg`, а не «скачать»), отдача кусками (Range) — иначе не работает перемотка голосового, `?download=1` —
-скачать. Поворот фото (`onRotate`) проект делает сам (у Атласа — sharp) и отдаёт новую метку содержимого.
+скачать. Поворот фото (`onRotate`) проект делает сам (например, библиотекой sharp) и отдаёт новую метку содержимого.
 
 ## Проверка после подключения
 

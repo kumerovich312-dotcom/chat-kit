@@ -5,7 +5,7 @@ import type { ChannelAdapter, ChannelCaps, ChannelEvent, Outgoing, ReceiveResult
 import { safeEqual } from "../../server/crypto.js";
 import type { ContactHint } from "../../server/store.js";
 
-/* Подключение «своя студия» (Muras AI Studio) — ЗАГОТОВКА. API студии для CRM ещё нет: он появится на этапе 5 её плана
+/* Подключение «ИИ-студия» (свой бот) — ЗАГОТОВКА. API студии для CRM ещё нет: он появится на этапе 5 её плана
    (артефакт «ИИ-продажник вместо Nextbot», раздел 10.8). Пути, поля и подпись ниже — по плану; когда студия выпустит
    API, сверить с её API_CONTRACTS и поправить здесь, окно переписки и переходник проекта не меняются.
 

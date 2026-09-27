@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { foldYo, searchWords } from "../core/text.js";
 import { ChevronIcon, CloseIcon, SearchIcon } from "./icons.js";
 
-/* Поиск внутри переписки (Атлас, 25.09.2026): лупа открывает строку над лентой. Находит сообщения, где есть все слова
+/* Поиск внутри переписки: лупа открывает строку над лентой. Находит сообщения, где есть все слова
    запроса (в любом порядке, ё = е), подсвечивает слова, «N из M» и стрелки — к более старому и новому (Enter — старее,
    Shift+Enter — новее, Esc — закрыть). Начинает с самого нового. Лента не перерисовывается: подсветка — CSS Custom
    Highlight API (::highlight(ck-find) в styles.css); текст сообщений помечен data-find, лента — data-chat-thread.

@@ -1,14 +1,14 @@
 import { normalizeChannel, type ChatChannel } from "../../core/channels.js";
 import { normalizePhone, phoneDigits } from "../../core/phone.js";
 
-/* Разбор события Nextbot — без базы. Перенесено из Атласа (src/lib/nextbot.ts, parseEvent и помощники) как есть:
-   на этих правилах Атлас работает с настоящим Nextbot с 22.09.2026.
+/* Разбор события Nextbot — без базы. Правила проверены на настоящем Nextbot (сентябрь 2026).
 
    Nextbot → CRM: сценарий Nextbot («Новое сообщение клиента», «… агента», «… менеджера») или функция («Передать заявку»,
-   «Найти вакансии») вызывает Custom API или Python Script, который шлёт POST с ключом и словарём args. Названия полей
-   у Nextbot бывают разными — ищем по спискам вариантов во всём теле и в args (верхний уровень важнее). */
+   свой запрос бота к CRM — свободное время, наличие товара) вызывает Custom API или Python Script, который шлёт POST
+   с ключом и словарём args. Названия полей у Nextbot бывают разными — ищем по спискам вариантов во всём теле и в args
+   (верхний уровень важнее). */
 
-export type EventKind = "client_message" | "bot_message" | "manager_message" | "lead" | "ping" | "vacancies";
+export type EventKind = "client_message" | "bot_message" | "manager_message" | "lead" | "ping" | "function";
 
 export type ParsedEvent = {
   kind: EventKind;
@@ -24,8 +24,11 @@ export type ParsedEvent = {
   phone: string | null;
   username: string | null;
   attachments: string[];
-  lead: { country: string | null; profession: string | null; city: string | null; amount: number | null; comment: string | null; age: number | null };
-  /** Свободный запрос функции «Найти вакансии» (поле query) */
+  /** Общие поля заявки; всё остальное, что прислал бот, — в fields */
+  lead: { country: string | null; city: string | null; amount: number | null; comment: string | null };
+  /** Имя функции бота (event: "function" и поле function или имя события из списка функций проекта) */
+  functionName: string | null;
+  /** Свободный запрос функции (поле query) */
   query: string | null;
   /** «Ответ ИИ-агента» в событии сообщения клиента (поле agent): в этот момент бот ещё не ответил, поэтому там обычно его
    *  прошлый ответ — добавляем, если такого ответа в переписке ещё нет */
@@ -116,7 +119,7 @@ const KIND_ALIASES: Record<string, EventKind> = {
   manager_message: "manager_message", manager: "manager_message", operator: "manager_message",
   lead: "lead", deal: "lead", order: "lead", request: "lead", заявка: "lead",
   ping: "ping", test: "ping",
-  vacancies: "vacancies", vacancy: "vacancies", find_vacancies: "vacancies", jobs: "vacancies", вакансии: "vacancies",
+  function: "function", func: "function", tool: "function", функция: "function",
 };
 
 /** Все пары «ключ → значение» из тела и из args (включая вложенные объекты), ключи маленькими буквами */
@@ -233,8 +236,9 @@ function toNumber(v: unknown): number | null {
 }
 
 /** phoneCode — телефонный код страны компании: номер, который клиент написал боту по-местному
- *  («0555 00-00-01», «8 701 000-00-01»), приводим к единому виду, как в карточке клиента */
-export function parseEvent(body: Record<string, unknown>, phoneCode = ""): ParsedEvent {
+ *  («0555 00-00-01», «8 701 000-00-01»), приводим к единому виду, как в карточке клиента.
+ *  functionNames — имена событий, которые проект считает функциями бота (сценарий Nextbot шлёт event: "<имя>") */
+export function parseEvent(body: Record<string, unknown>, phoneCode = "", functionNames: readonly string[] = []): ParsedEvent {
   const map = new Map<string, unknown>();
   // Поля верхнего уровня важнее одноимённых в args
   flatten(Object.fromEntries(Object.entries(body).filter(([k]) => k !== "args")), map);
@@ -242,7 +246,8 @@ export function parseEvent(body: Record<string, unknown>, phoneCode = ""): Parse
 
   // Тип события — только из тела запроса (в args бывают свои поля «type»)
   const rawKind = String(body.event ?? body.event_type ?? body.kind ?? "client_message").trim().toLowerCase();
-  const kind = KIND_ALIASES[rawKind] ?? "client_message";
+  const ownFunction = functionNames.some((n) => n.trim().toLowerCase() === rawKind);
+  const kind: EventKind = ownFunction ? "function" : KIND_ALIASES[rawKind] ?? "client_message";
 
   let dialogId = parseDialogId(pick(map, ["dialog_id", "dialogid", "id диалога", "dialog"]));
   if (!dialogId) dialogId = parseDialogId(pick(map, ["dialog_url", "dialog_link", "ссылка на диалог", "ссылка_на_диалог", "linkdialog", "link_dialog", "link", "linkdialoginmessenger"]));
@@ -311,13 +316,12 @@ export function parseEvent(body: Record<string, unknown>, phoneCode = ""): Parse
     username: str(pick(map, ["username", "user_name", "telegramusername", "login", "userid", "user_id", "id пользователя", "linkinusermessanger"]), 120),
     attachments: [...new Set(attachments)].slice(0, 5),
     lead: {
-      country: str(pick(map, ["country", "страна", "страна назначения"]), 80),
-      profession: str(pick(map, ["profession", "профессия", "специальность", "vacancy", "вакансия", "direction", "направление"]), 120),
+      country: str(pick(map, ["country", "страна"]), 80),
       city: str(pick(map, ["city", "город"]), 80),
       amount: toNumber(pick(map, ["amount", "budget", "бюджет", "сумма"])),
       comment: str(pick(map, ["comment", "комментарий", "summary", "итог", "note", "заметка"]), 2000),
-      age: (() => { const n = toNumber(pick(map, ["age", "возраст"])); return n && n < 120 ? Math.round(n) : null; })(),
     },
+    functionName: kind !== "function" ? null : ownFunction ? rawKind : str(pick(map, ["function", "function_name", "functionname", "tool", "функция"]), 80),
     query: blank(str(pick(map, ["query", "запрос", "search", "поиск"]), 120)),
     fields,
   };

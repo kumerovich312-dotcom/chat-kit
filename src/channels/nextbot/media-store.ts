@@ -1,7 +1,7 @@
 import type { KeyValue } from "../../server/store.js";
 
-/* Хранилище подключения Nextbot — что Атлас держал в таблицах nextbot_media и nextbot_settings.media_folders и что узнавал
-   по журналу nextbot_events. Проект может отдать своё (Атлас — поверх этих таблиц, чтобы помнить уже забранные файлы);
+/* Хранилище подключения Nextbot: какие ссылки на файлы уже забраны, папки хранилища, были ли события бота.
+   Проект может отдать своё (поверх своих таблиц — чтобы помнить уже забранные файлы при переезде);
    по умолчанию — поверх store.state («ключ → значение»). */
 
 export type MediaInfo = {
@@ -43,7 +43,7 @@ export function kvMedia(kv: KeyValue): NextbotMedia {
     },
     async remember(url, fileId, at) {
       const prev = await kv.get(K_MEDIA + url);
-      // Уже записанный файл не забываем (как ON CONFLICT … COALESCE в Атласе)
+      // Уже записанный файл не забываем (как ON CONFLICT … COALESCE в базе)
       if (prev && !fileId) return;
       await kv.set(K_MEDIA + url, JSON.stringify({ f: fileId, at }));
     },

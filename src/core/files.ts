@@ -66,7 +66,7 @@ export function fileHref(a: Pick<Attachment, "url" | "version">, extra?: Record<
   return q ? `${a.url}${a.url.includes("?") ? "&" : "?"}${q}` : a.url;
 }
 
-/** Текст сообщения — это просто имя вложения («Файл: паспорт.jpg»): под вложением его не повторяем */
+/** Текст сообщения — это просто имя вложения («Файл: фото.jpg»): под вложением его не повторяем */
 export function textIsFileName(text: string, attachments: readonly Pick<Attachment, "name">[] | undefined): boolean {
   const t = text.trim();
   if (!t || !attachments?.length) return !t;

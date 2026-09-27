@@ -3,17 +3,17 @@ import { isHandoff, lastDialogLine, nextbotTime, parseDialogDump, parseDialogId,
 import { mediaCandidates, mediaFolders, mediaHostAllowed, mediaRef, mediaText, mediaTitle } from "../../../src/channels/nextbot/media.js";
 import { webhookUrlFix, webhookUrlProblem } from "../../../src/channels/nextbot/webhook.js";
 
-// Разбор событий Nextbot — случаи из проверок Атласа (test-nextbot.mjs, test-units.mjs), данные вымышленные.
+// Разбор событий Nextbot — случаи с настоящего Nextbot, данные вымышленные.
 
 describe("parseEvent", () => {
   it("событие клиента: поля верхнего уровня важнее args, телефон по-местному → +996", () => {
     const ev = parseEvent({
-      event: "client_message", dialog_id: 10001, text: "Есть работа в Польше?",
+      event: "client_message", dialog_id: 10001, text: "Есть свободное время в субботу?",
       args: { text: "не это", messenger: "WhatsApp", name: "Азат", phone: "0555 00-00-01" },
     }, "+996");
     expect(ev.kind).toBe("client_message");
     expect(ev.dialogId).toBe("10001");
-    expect(ev.text).toBe("Есть работа в Польше?");
+    expect(ev.text).toBe("Есть свободное время в субботу?");
     expect(ev.channel).toBe("whatsapp");
     expect(ev.name).toBe("Азат");
     expect(ev.phone).toBe("+996555000001");
@@ -23,7 +23,9 @@ describe("parseEvent", () => {
     expect(parseEvent({ dialog_id: 1, text: "x" }).kind).toBe("client_message");
     expect(parseEvent({ event: "agent", dialog_id: 1, text: "x" }).kind).toBe("bot_message");
     expect(parseEvent({ event: "заявка", dialog_id: 1 }).kind).toBe("lead");
-    expect(parseEvent({ event: "find_vacancies" }).kind).toBe("vacancies");
+    expect(parseEvent({ event: "function", function: "free_slots" })).toMatchObject({ kind: "function", functionName: "free_slots" });
+    expect(parseEvent({ event: "free_slots" }, "", ["free_slots"])).toMatchObject({ kind: "function", functionName: "free_slots" });
+    expect(parseEvent({ event: "free_slots" }).kind).toBe("client_message");
   });
 
   it("номер диалога из ссылки на диалог", () => {
@@ -42,12 +44,12 @@ describe("parseEvent", () => {
   });
 
   it("«Полный диалог» в поле text — это дамп, а не сообщение", () => {
-    const dump = "27.09.26 07-58 [ИИ-агент]: Здравствуйте!\n27.09.26 07-59 [Азат]: Есть работа?";
+    const dump = "27.09.26 07-58 [ИИ-агент]: Здравствуйте!\n27.09.26 07-59 [Азат]: Сколько стоит?";
     const ev = parseEvent({ event: "client_message", dialog_id: 1, text: dump });
     expect(ev.dump).toBe(dump);
     expect(ev.text).toBe("");
-    const withField = parseEvent({ event: "client_message", dialog_id: 1, client_message: "Есть работа?", full_dialog: dump });
-    expect(withField.text).toBe("Есть работа?");
+    const withField = parseEvent({ event: "client_message", dialog_id: 1, client_message: "Сколько стоит?", full_dialog: dump });
+    expect(withField.text).toBe("Сколько стоит?");
     expect(withField.dump).toBe(dump);
   });
 
@@ -70,9 +72,10 @@ describe("parseEvent", () => {
   });
 
   it("ошибка отправки и заявка", () => {
-    const ev = parseEvent({ event: "lead", dialog_id: 1, args: { errors: "VALIDATE_ACCESS_DIALOG_PAUSED", country: "Польша", profession: "Сварщик", age: "31", budget: "1 500" } });
+    const ev = parseEvent({ event: "lead", dialog_id: 1, args: { errors: "VALIDATE_ACCESS_DIALOG_PAUSED", city: "Бишкек", service: "Консультация", budget: "1 500" } });
     expect(ev.sendError).toBe("VALIDATE_ACCESS_DIALOG_PAUSED");
-    expect(ev.lead).toMatchObject({ country: "Польша", profession: "Сварщик", age: 31, amount: 1500 });
+    expect(ev.lead).toMatchObject({ city: "Бишкек", amount: 1500 });
+    expect(ev.fields).toMatchObject({ service: "Консультация" });
   });
 });
 
@@ -120,11 +123,11 @@ describe("«передаю менеджеру»", () => {
     expect(isHandoff("Сейчас передам вас нашему менеджеру")).toBe(true);
     expect(isHandoff("С вами свяжется менеджер в ближайшее время")).toBe(true);
     expect(isHandoff("Менеджер скоро ответит")).toBe(true);
-    expect(isHandoff("В Германии есть вакансии сварщиков")).toBe(false);
+    expect(isHandoff("В субботу есть свободное время у специалиста")).toBe(false);
   });
 });
 
-describe("файлы в «Полном диалоге» (из test-units Атласа, адреса вымышленные)", () => {
+describe("файлы в «Полном диалоге» (адреса вымышленные)", () => {
   const DO = "https://media-test.fra1.digitaloceanspaces.com/000000000000/";
   it("документ — ссылка и название строкой ниже; название с расширением", () => {
     const docRef = mediaRef(`${DO}d421810c-84dc-40c9-9e45-504c9c6497f0.docx\nДОГОВОР(ПРИМЕР) - 2026 (1)`);
@@ -148,7 +151,7 @@ describe("файлы в «Полном диалоге» (из test-units Атл�
     expect(mediaHostAllowed("http://127.0.0.1:9/x.pdf", ["127.0.0.1"])).toBe(true);
   });
   it("подпись к фото — текстом сообщения, у документа текст — его название", () => {
-    expect(mediaText(mediaRef("0da4d22f-c0aa-4b68-b32a-024db71cd27b.jpg\nМой паспорт")!, "image/jpeg", "Фото")).toBe("Мой паспорт");
+    expect(mediaText(mediaRef("0da4d22f-c0aa-4b68-b32a-024db71cd27b.jpg\nМоё фото")!, "image/jpeg", "Фото")).toBe("Моё фото");
     expect(mediaText(mediaRef(`${DO}d421810c-84dc-40c9-9e45-504c9c6497f0.docx\nДОГОВОР`)!, "application/pdf", "ДОГОВОР.pdf")).toBe("ДОГОВОР.pdf");
   });
 });

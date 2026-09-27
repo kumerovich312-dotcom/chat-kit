@@ -3,14 +3,14 @@ import { createNextbotAdapter, DEFAULT_MANAGER_NOTE, handleNextbotRequest, type 
 import { createMemoryStore, ingest, sha1Hex, type IngestHooks } from "../../../src/server/index.js";
 import { bytes, fakeNet } from "../../helpers/fake-net.js";
 
-// Подключение Nextbot на переходнике «в памяти» и поддельной сети — сценарии проверок Атласа (test-nextbot.mjs).
+// Подключение Nextbot на переходнике «в памяти» и поддельной сети — сценарии с настоящего Nextbot.
 // Имена, номера, диалоги и адреса — вымышленные.
 
 const T0 = Date.parse("2026-09-27T08:00:00Z");
 const MIN = 60_000;
 const DO = "https://media-test.fra1.digitaloceanspaces.com/000000000000/";
 
-function setup(o: { settings?: Partial<NextbotSettings>; hooks?: IngestHooks; canStoreFiles?: boolean; webhookStatus?: () => number } = {}) {
+function setup(o: { settings?: Partial<NextbotSettings>; hooks?: IngestHooks; canStoreFiles?: boolean; webhookStatus?: () => number; functions?: string[] } = {}) {
   const net = fakeNet(o.webhookStatus ? { webhookStatus: o.webhookStatus } : {});
   const store = createMemoryStore({ countryCode: "+996" });
   let now = T0;
@@ -18,6 +18,7 @@ function setup(o: { settings?: Partial<NextbotSettings>; hooks?: IngestHooks; ca
     settings: { enabled: true, webhookUrl: net.webhook, managerNote: DEFAULT_MANAGER_NOTE, phoneCode: "+996", ...o.settings },
     store, fetch: net.fetch, now: () => now,
     ...(o.canStoreFiles === false ? { canStoreFiles: async () => false } : {}),
+    ...(o.functions ? { functions: o.functions } : {}),
   });
   const post = async (body: unknown, at = now) => {
     now = at;
@@ -30,11 +31,11 @@ function setup(o: { settings?: Partial<NextbotSettings>; hooks?: IngestHooks; ca
 describe("приём событий Nextbot", () => {
   it("сообщение клиента: клиент заведён по номеру из WhatsApp, время — из поля time, клиент ждёт ответа", async () => {
     const { store, post } = setup();
-    const r = await post({ event: "client_message", dialog_id: 10001, client_message: "Есть работа в Польше?", messenger: "WhatsApp", name: "Азат", phone: "0555 00-00-01", time: "2026-09-27 13:59:40" });
+    const r = await post({ event: "client_message", dialog_id: 10001, client_message: "Есть свободное время в субботу?", messenger: "WhatsApp", name: "Азат", phone: "0555 00-00-01", time: "2026-09-27 13:59:40" });
     expect(r.status).toBe(200);
     expect(r.body).toMatchObject({ ok: true, status: "ok", event: "client_message", client_id: "1", created_client: true });
     const [m] = store.thread("1");
-    expect(m).toMatchObject({ text: "Есть работа в Польше?", author: { type: "client" }, channel: "whatsapp", at: "2026-09-27T07:59:40.000Z" });
+    expect(m).toMatchObject({ text: "Есть свободное время в субботу?", author: { type: "client" }, channel: "whatsapp", at: "2026-09-27T07:59:40.000Z" });
     expect(store.waitingSince("1")).toBe("2026-09-27T07:59:40.000Z");
     expect(store.contacts.get("1")).toMatchObject({ phone: "+996555000001", channel: "whatsapp" });
   });
@@ -50,8 +51,8 @@ describe("приём событий Nextbot", () => {
 
   it("ответ ИИ-агента — автор «бот», тот же клиент, клиент больше не ждёт", async () => {
     const { store, post } = setup();
-    await post({ event: "client_message", dialog_id: 10003, client_message: "Есть работа?", messenger: "Instagram", name: "Бакыт" });
-    const bot = await post({ event: "bot_message", dialog_id: 10003, text: "Да, есть вакансии сварщика", messenger: "Instagram" }, T0 + 3_000);
+    await post({ event: "client_message", dialog_id: 10003, client_message: "Сколько стоит?", messenger: "Instagram", name: "Бакыт" });
+    const bot = await post({ event: "bot_message", dialog_id: 10003, text: "Да, есть свободное время", messenger: "Instagram" }, T0 + 3_000);
     expect(bot.body).toMatchObject({ ok: true, client_id: "1", created_client: false });
     expect(store.thread("1").map((m) => m.author.type)).toEqual(["client", "bot"]);
     expect(store.waitingSince("1")).toBeNull();
@@ -84,38 +85,38 @@ describe("приём событий Nextbot", () => {
 describe("«Полный диалог»", () => {
   it("реплики разложены по сообщениям, время — по Гринвичу; повторный дамп добавляет только новое", async () => {
     const { post, store, texts } = setup();
-    const dump1 = "27.09.26 07-50 [Азат]: Салам алейкум\n27.09.26 07-50 [ИИ-квалификатор]: Здравствуйте! Чем помочь?\n27.09.26 07-51 [Азат]: Нужна работа в Польше";
+    const dump1 = "27.09.26 07-50 [Азат]: Салам алейкум\n27.09.26 07-50 [ИИ-квалификатор]: Здравствуйте! Чем помочь?\n27.09.26 07-51 [Азат]: Нужна консультация";
     await post({ event: "client_message", dialog_id: 20001, text: dump1, name: "Азат", messenger: "Instagram" });
-    expect(texts("1")).toEqual(["Салам алейкум", "Здравствуйте! Чем помочь?", "Нужна работа в Польше"]);
+    expect(texts("1")).toEqual(["Салам алейкум", "Здравствуйте! Чем помочь?", "Нужна консультация"]);
     expect(store.thread("1").map((m) => m.at)).toEqual(["2026-09-27T07:50:00.000Z", "2026-09-27T07:50:00.001Z", "2026-09-27T07:51:59.999Z"]);
-    const dump2 = `${dump1}\n27.09.26 07-52 [ИИ-квалификатор]: Какая профессия?\n27.09.26 07-53 [Азат]: Есть кто?`;
+    const dump2 = `${dump1}\n27.09.26 07-52 [ИИ-квалификатор]: Какой день удобен?\n27.09.26 07-53 [Азат]: Есть кто?`;
     await post({ event: "client_message", dialog_id: 20001, text: dump2, name: "Азат", messenger: "Instagram" }, T0 + MIN);
-    expect(texts("1")).toEqual(["Салам алейкум", "Здравствуйте! Чем помочь?", "Нужна работа в Польше", "Какая профессия?", "Есть кто?"]);
+    expect(texts("1")).toEqual(["Салам алейкум", "Здравствуйте! Чем помочь?", "Нужна консультация", "Какой день удобен?", "Есть кто?"]);
   });
 
   it("ответ бота и следующее сообщение клиента в ту же минуту — клиент ниже бота, как в WhatsApp, и ждёт ответа", async () => {
     const { post, store, texts } = setup();
-    await post({ event: "client_message", dialog_id: 20002, name: "Бакыт", text: "27.09.26 07-58 [ИИ-агент]: Здравствуйте!\n27.09.26 07-59 [Бакыт]: Есть работа?" }, T0 - 40_000);
-    await post({ event: "bot_message", dialog_id: 20002, text: "Да, есть работа", time: "2026-09-27 13:59:40" }, T0 - 20_000);
+    await post({ event: "client_message", dialog_id: 20002, name: "Бакыт", text: "27.09.26 07-58 [ИИ-агент]: Здравствуйте!\n27.09.26 07-59 [Бакыт]: Сколько стоит?" }, T0 - 40_000);
+    await post({ event: "bot_message", dialog_id: 20002, text: "От 1000 сом", time: "2026-09-27 13:59:40" }, T0 - 20_000);
     await post({
       event: "client_message", dialog_id: 20002, name: "Бакыт",
-      text: "27.09.26 07-58 [ИИ-агент]: Здравствуйте!\n27.09.26 07-59 [Бакыт]: Есть работа?\n27.09.26 07-59 [ИИ-агент]: Да, есть работа\n27.09.26 07-59 [Бакыт]: А в Польше?",
+      text: "27.09.26 07-58 [ИИ-агент]: Здравствуйте!\n27.09.26 07-59 [Бакыт]: Сколько стоит?\n27.09.26 07-59 [ИИ-агент]: От 1000 сом\n27.09.26 07-59 [Бакыт]: А в субботу?",
     }, T0 + 30_000);
-    expect(texts("1")).toEqual(["Здравствуйте!", "Есть работа?", "Да, есть работа", "А в Польше?"]);
+    expect(texts("1")).toEqual(["Здравствуйте!", "Сколько стоит?", "От 1000 сом", "А в субботу?"]);
     expect(store.waitingSince("1")).toBe("2026-09-27T07:59:59.999Z");
   });
 
   it("поле time: вопрос клиента выше ответа бота, хотя пришёл в CRM позже; клиент не ждёт", async () => {
     const { post, store, texts } = setup();
     await post({ event: "bot_message", dialog_id: 20003, text: "Да, есть", time: "2026-09-27 14:00:05" }, T0 + 6_000);
-    await post({ event: "client_message", dialog_id: 20003, client_message: "Есть работа?", time: "2026-09-27 14:00:00" }, T0 + 8_000);
-    expect(texts("1")).toEqual(["Есть работа?", "Да, есть"]);
+    await post({ event: "client_message", dialog_id: 20003, client_message: "Сколько стоит?", time: "2026-09-27 14:00:00" }, T0 + 8_000);
+    expect(texts("1")).toEqual(["Сколько стоит?", "Да, есть"]);
     expect(store.waitingSince("1")).toBeNull();
   });
 
   it("время без секунд не берём — ставим время прихода", async () => {
     const { post, store } = setup();
-    await post({ event: "client_message", dialog_id: 20004, client_message: "Нужна работа", time: "27.09.2026, 13:59" }, T0 + 20_000);
+    await post({ event: "client_message", dialog_id: 20004, client_message: "Нужна консультация", time: "27.09.2026, 13:59" }, T0 + 20_000);
     expect(store.thread("1")[0]?.at).toBe(new Date(T0 + 20_000).toISOString());
   });
 
@@ -173,9 +174,9 @@ describe("файлы из Nextbot", () => {
     const { post, store, net } = setup();
     const url = "https://storage.nextbot.ru/u/photo-a1.jpg";
     net.files.set(url, bytes.jpeg());
-    await post({ event: "client_message", dialog_id: 40001, client_message: "Вот мой паспорт", picture: url });
+    await post({ event: "client_message", dialog_id: 40001, client_message: "Вот фото", picture: url });
     let thread = store.thread("1");
-    expect(thread.map((m) => m.text)).toEqual(["Вот мой паспорт", "Фото от клиента"]);
+    expect(thread.map((m) => m.text)).toEqual(["Вот фото", "Фото от клиента"]);
     expect(thread[1]?.attachments?.[0]?.mime).toBe("image/jpeg");
     expect(Date.parse(thread[1]!.at)).toBe(Date.parse(thread[0]!.at) + 1);
     await post({ event: "client_message", dialog_id: 40001, message_id: "m2", client_message: "И ещё вопрос", picture: url }, T0 + MIN);
@@ -297,16 +298,26 @@ describe("заявка, функция бота и ключ", () => {
   it("заявка бота — обработчику проекта с полями; телефон записан клиенту", async () => {
     const leads: Record<string, unknown>[] = [];
     const { post, store } = setup({ hooks: { onLead: async (x) => { leads.push(x.fields); } } });
-    const r = await post({ event: "lead", dialog_id: 60001, args: { country: "Польша", profession: "Сварщик", phone: "0555 00-00-02", name: "Эрлан", messenger: "WhatsApp" } });
+    const r = await post({ event: "lead", dialog_id: 60001, args: { city: "Бишкек", service: "Консультация", phone: "0555 00-00-02", name: "Эрлан", messenger: "WhatsApp" } });
     expect(r.body).toMatchObject({ ok: true, event: "lead" });
-    expect(leads[0]).toMatchObject({ country: "Польша", profession: "Сварщик", phone: "+996555000002" });
+    expect(leads[0]).toMatchObject({ city: "Бишкек", service: "Консультация", phone: "+996555000002" });
     expect(store.contacts.get("1")?.phone).toBe("+996555000002");
   });
 
-  it("«Найти вакансии» — ответ проекта уходит боту текстом", async () => {
-    const { post } = setup({ hooks: { onFunction: async (name, args) => ({ text: `${name}: ${args.country}`, count: 2 }) } });
-    const r = await post({ event: "vacancies", args: { country: "Германия", profession: "Каменщик" } });
-    expect(r.body).toMatchObject({ ok: true, event: "vacancies", count: 2, text: "vacancies: Германия" });
+  it("функция бота — ответ проекта уходит боту текстом: event function с именем или имя из списка проекта", async () => {
+    const calls: { name: string; args: Record<string, string | null> }[] = [];
+    const { post } = setup({
+      functions: ["free_slots"],
+      hooks: { onFunction: async (name, args) => { calls.push({ name, args }); return { text: `${name}: ${args.date}`, count: 2 }; } },
+    });
+    const r = await post({ event: "free_slots", key: "test-secret-not-real-nextbot", args: { date: "2026-10-12", service: "Консультация" } });
+    expect(r.body).toMatchObject({ ok: true, event: "free_slots", count: 2, text: "free_slots: 2026-10-12" });
+    expect(calls[0]?.args).toMatchObject({ date: "2026-10-12", service: "Консультация" });
+    expect(calls[0]?.args).not.toHaveProperty("key");
+    const r2 = await post({ event: "function", function: "in_stock", args: { product: "Товар 1" } });
+    expect(r2.body).toMatchObject({ ok: true, event: "in_stock", count: 2 });
+    const r3 = await post({ event: "function", args: { product: "Товар 1" } });
+    expect(r3.status).toBe(422);
   });
 
   it("маршрут: без ключа и с неверным — 401, выключено — 403, верный — принято", async () => {

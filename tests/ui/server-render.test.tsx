@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ChatMessage, DialogSummary } from "../../src/core/index.js";
 import { ChatWindow, DialogList } from "../../src/ui/index.js";
 
-// Окно собирается и на сервере (Атлас рисует переписку серверной страницей): без window и document, без ошибок.
+// Окно собирается и на сервере (проект может рисовать переписку серверной страницей): без window и document, без ошибок.
 
 const NOW = Date.parse("2026-09-27T10:00:00Z");
 const messages: ChatMessage[] = [

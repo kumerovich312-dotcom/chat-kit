@@ -1,5 +1,4 @@
-/* Каналы переписки: коды, подписи, узнавание канала по названию от провайдера. Без базы и импортов.
-   Пришло из Атласа (src/lib/channels.ts) и TishCRM (src/lib/channels/kinds.ts). */
+/* Каналы переписки: коды, подписи, узнавание канала по названию от провайдера. Без базы и импортов. */
 
 export const CHAT_CHANNELS = ["whatsapp", "telegram", "instagram", "vk", "max", "avito", "site", "email", "sms", "nextbot", "test"] as const;
 export type ChatChannel = (typeof CHAT_CHANNELS)[number];

@@ -10,11 +10,11 @@ import { blank, isHandoff, nextbotTime, parseDialogDump, parseEvent, type Parsed
 import { planDump, type PlannedMedia } from "./plan.js";
 import { webhookUrlProblem } from "./webhook.js";
 
-/* Подключение Nextbot — перенесено из Атласа (src/lib/nextbot.ts), отделено от его базы: всё, что Атлас делал запросами,
-   идёт через переходник проекта (ChatStore) и маленькое хранилище подключения (NextbotMedia).
+/* Подключение Nextbot — без базы: всё, что нужно записать или найти, идёт через переходник проекта (ChatStore)
+   и маленькое хранилище подключения (NextbotMedia).
 
    Nextbot → CRM: POST с ключом (handleNextbotRequest), события client_message / bot_message / manager_message / lead /
-   vacancies / ping. CRM → Nextbot: «Ссылка вебхука» — forwarded_output (клиенту), output (заметка боту, клиент не видит),
+   function / ping. CRM → Nextbot: «Ссылка вебхука» — forwarded_output (клиенту), output (заметка боту, клиент не видит),
    notification (служебная отметка). Написать первым клиенту, который не писал в Nextbot, нельзя.
 
    Обходы Nextbot живут только здесь: разбор «Полного диалога», угадывание времени (поле time, пояс по разнице часов)
@@ -51,8 +51,11 @@ export type NextbotOptions = {
   /** Хранилище подключения: какие ссылки на файлы уже забраны, папки хранилища, были ли события бота.
    *  Не задано — в store.state, а без него — в памяти процесса */
   media?: NextbotMedia | undefined;
-  /** Есть ли клиенту куда положить файл (у Атласа файл лежит в сделке). Нет — строка-файл остаётся текстом */
+  /** Есть ли клиенту куда положить файл (например, файл лежит в заявке клиента). Нет — строка-файл остаётся текстом */
   canStoreFiles?: ((contactId: string) => Promise<boolean>) | undefined;
+  /** Имена событий, которые сценарий Nextbot шлёт как функции бота (event: "free_slots"). Событие event: "function"
+   *  с полем function работает и без списка */
+  functions?: readonly string[] | undefined;
   /** Журнал обмена («Настройки → Nextbot»): что пришло и что ушло */
   log?: ((e: NextbotLogEntry) => Promise<void> | void) | undefined;
   fetch?: typeof fetch | undefined;
@@ -61,7 +64,7 @@ export type NextbotOptions = {
 
 export const NEXTBOT_CAPS: ChannelCaps = { text: true, files: true, pause: false, mute: false, start: false, statuses: false };
 
-/** Заметка боту по умолчанию (как в Атласе) */
+/** Заметка боту по умолчанию */
 export const DEFAULT_MANAGER_NOTE =
   "Менеджер {менеджер} подключился к диалогу и отвечает клиенту сам. Не отвечай клиенту, пока менеджер ведёт разговор; если клиент спросит — скажи, что менеджер скоро ответит.";
 
@@ -95,7 +98,7 @@ function rememberBad(url: string) {
 export type NextbotAdapter = ChannelAdapter & {
   /** Заметка боту (клиент её не видит) */
   note(dialogId: string, text: string, contactId?: string): Promise<SendResult>;
-  /** Служебная отметка в диалоге: смена этапа сделки */
+  /** Служебная отметка в диалоге: смена этапа заявки */
   notification(dialogId: string, text: string, contactId?: string): Promise<SendResult>;
   /** Проверка связи из настроек: отметка «Проверка связи с CRM» в диалоге */
   test(dialogId: string): Promise<SendResult>;
@@ -144,7 +147,7 @@ export function createNextbotAdapter(o: NextbotOptions): NextbotAdapter {
     return fetchFile(url, { fetch: doFetch, allowHost: (h) => !isPrivateHost(h) || extra.includes(h) });
   }
 
-  /** Файлы из Nextbot — скачиваем себе (ссылки временные, а фото паспорта или договор должны остаться у компании) и
+  /** Файлы из Nextbot — скачиваем себе (ссылки временные, а фото документа или договор должны остаться у компании) и
    *  показываем вложением на своём месте. Знакомую ссылку не скачиваем: Nextbot шлёт ссылку на последнее фото клиента
    *  в каждом событии. Тот же файл по другой ссылке узнаём по содержимому */
   async function saveMedia(store: ChatStore, contactId: string, channel: string, outAuthor: Author, items: PlannedMedia[]) {
@@ -235,15 +238,13 @@ export function createNextbotAdapter(o: NextbotOptions): NextbotAdapter {
       }
       if (!body || typeof body !== "object" || Array.isArray(body)) return { ok: false, status: 400, error: "Тело запроса должно быть JSON-объектом" };
       const b = body as Record<string, unknown>;
-      const ev = parseEvent(b, s.phoneCode ?? "");
-      const meta = { event: ev.kind, dialogId: ev.dialogId, payload: b };
+      const ev = parseEvent(b, s.phoneCode ?? "", o.functions ?? []);
+      const meta = { event: ev.kind === "function" ? ev.functionName ?? "function" : ev.kind, dialogId: ev.dialogId, payload: b };
       if (ev.kind === "ping") return { ok: true, events: [{ type: "ping" }], meta };
-      // Функция «Найти вакансии»: бот спрашивает данные у CRM — номер диалога не нужен
-      if (ev.kind === "vacancies") {
-        return {
-          ok: true, meta,
-          events: [{ type: "function", name: "vacancies", args: { profession: blank(ev.lead.profession), country: blank(ev.lead.country), city: blank(ev.lead.city), query: ev.query } }],
-        };
+      // Функция бота: бот спрашивает данные у CRM (свободное время, наличие) — номер диалога не нужен, ответ пишет проект
+      if (ev.kind === "function") {
+        if (!ev.functionName) return { ok: false, status: 422, error: "Нет имени функции: пришлите поле function", meta };
+        return { ok: true, meta, events: [{ type: "function", name: ev.functionName, args: functionArgs(ev) }] };
       }
       // Тестовый чат Nextbot (окно проверки бота в конструкторе) — не клиент: в CRM не попадает
       if (ev.testChat) return { ok: false, status: 200, ignored: true, error: "Тестовый чат Nextbot — в CRM не попадает", meta };
@@ -267,7 +268,7 @@ export function createNextbotAdapter(o: NextbotOptions): NextbotAdapter {
         const l = ev.lead;
         return {
           ok: true, meta,
-          events: [{ type: "lead", contact: hint, fields: { ...ev.fields, country: l.country, profession: l.profession, city: l.city, amount: l.amount, comment: l.comment, age: l.age, phone: ev.phone, name: ev.name } }],
+          events: [{ type: "lead", contact: hint, fields: { ...ev.fields, country: l.country, city: l.city, amount: l.amount, comment: l.comment, phone: ev.phone, name: ev.name } }],
         };
       }
       return { ok: true, meta, events: [{ type: "custom", name: `nextbot:${ev.kind}`, contact: hint, data: ev }] };
@@ -488,4 +489,13 @@ export function createNextbotAdapter(o: NextbotOptions): NextbotAdapter {
     post,
   };
   return adapter;
+}
+
+/** Всё, что бот прислал функции, — строками; служебные поля и возможные ключи — не передаём */
+function functionArgs(ev: ParsedEvent): Record<string, string | null> {
+  const skip = /^(event|event_type|kind|function|function_name|functionname|tool|key|api_key|apikey|token|authorization|secret)$/;
+  const args: Record<string, string | null> = {};
+  for (const [k, v] of Object.entries(ev.fields)) if (!skip.test(k)) args[k] = blank(v);
+  if (ev.query) args.query = ev.query;
+  return args;
 }
