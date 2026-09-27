@@ -8,7 +8,8 @@ import { PauseIcon, PlayIcon, SendIcon, StopIcon, TrashIcon } from "./icons.js";
    во время записи — красная точка, время и «волна» громкости; остановили — можно прослушать, удалить или отправить.
    Прослушивание — через Web Audio (без blob:-адресов: их запрещают строгие правила безопасности страницы).
    Файл уходит тем же путём, что файл с компьютера (поле file, voice=1). Какой формат запишет браузер: Chrome — webm,
-   Firefox — ogg, Safari — mp4; перевести в ogg для WhatsApp, если канал требует, — дело проекта или подключения. */
+   Firefox — ogg, Safari — mp4. Проект перед сохранением зовёт voiceForChannel (@muras/chat-kit/server): webm станет
+   ogg — WhatsApp и Telegram покажут его голосовым. Запись — одним каналом (моно), как у голосовых в мессенджерах. */
 
 export type Recording = { blob: Blob; mime: string; ext: string; durationSec: number; levels: number[] };
 
@@ -64,7 +65,7 @@ export function useRecorder() {
     const mime = pickMime();
     if (!mime || !navigator.mediaDevices?.getUserMedia) { setPhase({ kind: "error", message: "Этот браузер не умеет записывать голос" }); return; }
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const s = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
       stream.current = s;
       const rec = new MediaRecorder(s, { mimeType: mime });
       const chunks: Blob[] = [];

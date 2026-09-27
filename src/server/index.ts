@@ -10,3 +10,4 @@ export * from "./sniff.js";
 export * from "./memory-store.js";
 export * from "./request.js";
 export * from "./presence.js";
+export * from "./audio.js";
