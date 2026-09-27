@@ -53,7 +53,7 @@ function pdf(lines) {
   body += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
   return Buffer.from(body, "latin1");
 }
-writeFileSync(join(out, "contract.pdf"), pdf(["Sample employment contract", "chat-kit demo: this document is fictional.", "Party A: Example Agency LLC", "Party B: Test Client"]));
+writeFileSync(join(out, "contract.pdf"), pdf(["Sample service contract", "chat-kit demo: this document is fictional.", "Party A: Example Service LLC", "Party B: Test Client"]));
 
 // ── Word и Excel: настоящие zip-файлы с минимальным содержимым ────────────────────────────────────────────────
 const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });

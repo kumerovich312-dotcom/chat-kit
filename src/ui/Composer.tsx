@@ -142,14 +142,25 @@ export function Composer(p: ComposerProps) {
   const colleague = presenceLine(p.presence ?? [], p.meId, Date.now());
 
   // Поле растёт вместе с текстом, дальше — прокрутка внутри
-  useLayoutEffect(() => {
+  const fit = () => {
     const el = area.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight + 1, 180)}px`;
     // Полоса прокрутки — только когда текст не влез в 180 px (иначе дробные пиксели строки рисуют лишнюю полосу)
     el.style.overflowY = el.scrollHeight > 180 ? "auto" : "hidden";
-  }, [text, mode, staged, recording]);
+  };
+  useLayoutEffect(fit, [text, mode, staged, recording]);
+  // Поле стало шире или уже (окно, панель сбоку, шрифт догрузился) — пересчитать высоту
+  useEffect(() => {
+    const el = area.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let width = el.clientWidth;
+    const ro = new ResizeObserver(() => { if (el.clientWidth !== width) { width = el.clientWidth; fit(); } });
+    ro.observe(el);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording]);
 
   useEffect(() => { if (p.autoFocus) area.current?.focus(); }, [p.autoFocus]);
   // На телефоне Enter — новая строка, отправка — кнопкой (как в мобильных мессенджерах)

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import { photoSvg } from "./photos";
 
-// Демо-страница окна переписки: http://localhost:30030 (порты ниже 15000 Windows резервирует; 30003, 30004, 30014,
+// Демо-страница окна переписки: http://127.0.0.1:30030 (порты ниже 15000 Windows резервирует; 30003, 30004, 30014,
 // 30020, 30097, 30099, 35432 заняты другими проектами).
 
 const here = dirname(fileURLToPath(import.meta.url));

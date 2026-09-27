@@ -138,6 +138,8 @@ export type MessagePatch = {
 export interface KeyValue {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
+  /** Удалить ключ (по желанию: подключения убирают за собой отработанные записи) */
+  delete?(key: string): Promise<void>;
 }
 
 export interface ChatStore {

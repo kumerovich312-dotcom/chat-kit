@@ -1,5 +1,4 @@
-/* Демо-страница: раскладка и три темы — как окно будет выглядеть в Атласе, TishCRM и студии.
-   Темы — только значения переменных --ck-* (так же их задаст каждый проект у себя). */
+/* Демо-страница: раскладка. Цвета окна — переменные --ck-* (так же их задаёт каждый проект у себя). */
 
 html,
 body,
@@ -13,69 +12,9 @@ body {
   font-family: var(--ck-font);
 }
 
-/* Атлас — значения по умолчанию, свой шрифт */
-html[data-theme="atlas"] {
+/* Шрифт демо-страницы; цвета — из паспорта проекта (profileCss), тёмная тема — data-ck-theme="dark" */
+:root {
   --ck-font: "Golos Text", system-ui, sans-serif;
-}
-
-/* TishCRM (Dental AI CRM) — зелёный фирменный цвет, шрифт системный */
-html[data-theme="tish"] {
-  --ck-font: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --ck-bg: #f4f6f5;
-  --ck-surface-soft: #f8faf9;
-  --ck-ink: #1a2420;
-  --ck-body: #1a2420;
-  --ck-sub: #48544f;
-  --ck-muted: #66736d;
-  --ck-line: #e4e9e6;
-  --ck-line-soft: #eef2f0;
-  --ck-line-strong: #cad5cf;
-  --ck-accent: #17a674;
-  --ck-accent-dark: #0e6f4f;
-  --ck-accent-soft: #d6f2e4;
-  --ck-accent-line: #b0e6cf;
-  --ck-accent-faint: #effaf5;
-  --ck-out-meta: rgb(14 111 79 / 75%);
-  --ck-ch-telegram: #2f8fd8;
-  --ck-radius: 12px;
-}
-
-/* Студия (Muras AI Studio) — графит и лайм, скругления меньше, системный шрифт 13 px */
-html[data-theme="studio"] {
-  --ck-font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --ck-bg: #f5f6f3;
-  --ck-surface: #ffffff;
-  --ck-surface-soft: #f9faf7;
-  --ck-ink: #171917;
-  --ck-body: #171917;
-  --ck-sub: #525650;
-  --ck-muted: #72776f;
-  --ck-line: #daddd6;
-  --ck-line-soft: #ebede7;
-  --ck-line-strong: #c4c8bf;
-  --ck-accent: #c8f45a;
-  --ck-accent-dark: #9cca28;
-  --ck-accent-soft: #f2fbd9;
-  --ck-accent-line: #b3de45;
-  --ck-accent-faint: #f7fdea;
-  --ck-on-accent: #171917;
-  --ck-accent-ink: #171917;
-  --ck-link: #3d74c2;
-  --ck-link-hover: #2a5796;
-  --ck-tick: #3d74c2;
-  --ck-voice: #171917;
-  --ck-out-bg: #eef0ea;
-  --ck-out-line: #daddd6;
-  --ck-out-meta: #72776f;
-  --ck-danger: #a32920;
-  --ck-danger-soft: #fff2ef;
-  --ck-danger-line: #f3c9c2;
-  --ck-warn: #8a5f10;
-  --ck-warn-soft: #fff8e7;
-  --ck-warn-line: #f0dfb4;
-  --ck-radius: 6px;
-  --ck-radius-sm: 4px;
-  --ck-radius-bubble: 8px;
 }
 
 .demo {

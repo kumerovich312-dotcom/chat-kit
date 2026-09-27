@@ -225,7 +225,7 @@ export function ChatWindow({ list, dialog, side, profile, meId: me, picked = fal
                     <div className="ck-empty">{dialog.empty ?? <div className="ck-empty__title">Сообщений пока нет</div>}</div>
                   ) : null}
                   <ChatThread {...dialog.thread} renderActions={renderActions} messages={dialog.messages} timeZone={tz} now={now}
-                    t={t} cards={pf.cards} currency={pf.currency} meId={dialog.thread?.meId ?? meId}
+                    t={t} cards={pf.cards} currency={pf.currency} meId={dialog.thread?.meId ?? meId} clientName={dialog.thread?.clientName ?? dialog.name}
                     canReply={dialog.thread?.canReply ?? (!!composer && !composer.noteOnly)}
                     transcribeAction={fe.transcribe ? dialog.transcribeAction ?? dialog.thread?.transcribeAction : undefined} />
                   <PendingBubbles />

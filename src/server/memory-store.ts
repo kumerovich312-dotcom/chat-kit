@@ -46,6 +46,7 @@ export function createMemoryStore(opts: { countryCode?: string; fileUrl?: (id: s
   const state: KeyValue = {
     async get(key) { return kv.get(key) ?? null; },
     async set(key, value) { kv.set(key, value); },
+    async delete(key) { kv.delete(key); },
   };
 
   // Цитата: исходное сообщение по номеру у канала — если оно у нас есть, берём его номер, автора и текст

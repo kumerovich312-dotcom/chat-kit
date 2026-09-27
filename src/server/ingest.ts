@@ -169,20 +169,33 @@ async function attachFile(
 ): Promise<void> {
   const externalId = `${m.externalId}:file:${index}`;
   if (store.messageExists && (await store.messageExists(externalId))) return;
+  // Сообщение было только файлом — цитата (ответ на сообщение) живёт у первого файла
+  const onlyFiles = !m.text.trim();
+  const quote = onlyFiles && index === 0 && m.replyTo ? { replyTo: { externalId: m.replyTo.externalId, text: m.replyTo.text ?? null } } : {};
+  let reason: "missing" | "bad" | "retry" = "missing";
   for (const url of f.urls) {
     const got = adapter.download ? await adapter.download(url) : await fetchFile(url, { maxBytes: maxBytes ?? MAX_FILE_BYTES });
-    if (!got.ok) continue;
+    if (!got.ok) { reason = got.reason; continue; }
     const name = f.caption?.trim() || fileWords({ mime: got.mime, name: "" });
     const saved = await store.saveFile(contactId, {
       data: got.data, mime: got.mime, ext: got.ext, name, sha1: sha1Hex(got.data), sha256: sha256Hex(got.data), sourceUrl: url, fromClient,
     });
     await store.saveMessage(contactId, {
       kind: "message", author: m.author, channel: hint.channel, text: f.caption?.trim() || name, at: new Date(atMs).toISOString(),
-      externalId, fileId: saved.fileId,
+      externalId, fileId: saved.fileId, ...quote,
     });
     await store.notify({ contactId, kind: "file" });
     return;
   }
+  // Файл не забрали (слишком большой, чужой тип, пропал) — сообщение клиента из одного файла не должно пропасть:
+  // строка в ленте с подписью и причиной, посмотреть файл можно в самом мессенджере
+  if (!onlyFiles) return;
+  const why = reason === "bad" ? "слишком большой или такой тип не сохраняем" : reason === "retry" ? "канал не отдал его — сбой связи" : "файл уже недоступен";
+  await store.saveMessage(contactId, {
+    kind: "message", author: m.author, channel: hint.channel, at: new Date(atMs).toISOString(), externalId, ...quote,
+    text: `${f.caption?.trim() || "Файл"} — не удалось сохранить (${why}), посмотрите в мессенджере`,
+  });
+  await store.notify({ contactId, kind: "message" });
 }
 
 /** Звонок: строка в ленте сразу, запись разговора — после ответа телефонии. Пропущенный входящий — клиент ждёт ответа,

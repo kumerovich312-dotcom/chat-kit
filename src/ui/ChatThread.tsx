@@ -41,6 +41,8 @@ export type ThreadProps = {
   botName?: string | undefined;
   /** Надписи со словами отрасли (паспорт проекта) */
   t?: Texts | undefined;
+  /** Как зовут собеседника — подпись его сообщений в цитатах и «Ответить» */
+  clientName?: string | undefined;
   /** Свои карточки проекта (паспорт: cards) и валюта для денег в них */
   cards?: Readonly<Record<string, CardDef>> | undefined;
   currency?: string | undefined;
@@ -134,15 +136,21 @@ export function ChatThread(p: ThreadProps) {
   );
 }
 
+/** Подпись автора; у собеседника без имени в сообщении — его имя из диалога */
+function labelOf(a: ChatMessage["author"], p: Pick<ThreadProps, "meId" | "botName" | "clientName">, t: Texts): string {
+  if (a.type === "client" && !a.name?.trim() && p.clientName) return p.clientName;
+  return authorLabel(a, { meId: p.meId, t, ...(p.botName ? { botName: p.botName } : {}) });
+}
+
 /** Цитата сверху пузыря: кто и что написал; щелчок — к исходному сообщению (если оно в ленте) */
-function Quote({ q, byId, t, meId }: { q: MessageQuote; byId: ReadonlyMap<string, ChatMessage>; t: Texts; meId: string | null | undefined }) {
+function Quote({ q, byId, t, p }: { q: MessageQuote; byId: ReadonlyMap<string, ChatMessage>; t: Texts; p: ThreadProps }) {
   const orig = q.id ? byId.get(q.id) : undefined;
   const author = q.author ?? orig?.author ?? null;
   const att = q.attachment ?? orig?.attachments?.[0] ?? null;
   const text = q.text?.trim() || orig?.text?.trim() || (att ? fileWords(att) : "сообщение");
   const inner = (
     <>
-      <span className="ck-quote__who">{author ? authorLabel(author, { meId, t }) : t.replyTo}</span>
+      <span className="ck-quote__who">{author ? labelOf(author, p, t) : t.replyTo}</span>
       <span className="ck-quote__text">{text}</span>
     </>
   );
@@ -206,7 +214,7 @@ function Item({ m, p, t, bothChannels, byId }: { m: ChatMessage; p: ThreadProps;
     <div className={`${cls}${m.shadow ? " ck-msg--shadow" : ""}`} id={`ck-m-${m.id}`} data-message={m.id} data-f={f}>
       {p.canReply && !m.shadow ? (
         <button type="button" className="ck-msg__reply" aria-label={t.reply} title={t.reply}
-          data-ck-reply={m.id} data-ck-reply-who={authorLabel(m.author, { meId: p.meId, t, ...(p.botName ? { botName: p.botName } : {}) })} data-ck-reply-text={snippet}>
+          data-ck-reply={m.id} data-ck-reply-who={labelOf(m.author, p, t)} data-ck-reply-text={snippet}>
           <ReplyIcon />
         </button>
       ) : null}
@@ -217,7 +225,7 @@ function Item({ m, p, t, bothChannels, byId }: { m: ChatMessage; p: ThreadProps;
           {m.shadow ? <span className="ck-badge ck-badge--bot">{t.shadowBadge}</span> : null}
         </div>
       )}
-      {m.replyTo ? <Quote q={m.replyTo} byId={byId} t={t} meId={p.meId} /> : null}
+      {m.replyTo ? <Quote q={m.replyTo} byId={byId} t={t} p={p} /> : null}
       {m.subject ? <div className="ck-msg__subject" data-find="">✉ {m.subject}</div> : null}
       {atts}
       {card}

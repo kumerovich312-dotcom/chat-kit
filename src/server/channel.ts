@@ -106,8 +106,13 @@ export type Outgoing = {
   text: string;
   /** Тема письма (почта) */
   subject?: string | null | undefined;
-  /** Файл: ссылка, по которой канал заберёт его сам (signFileLink), или данные — для каналов, куда файл загружают */
-  file?: { name: string; mime: string; url?: string | undefined; path?: string | undefined; data?: Uint8Array | undefined } | undefined;
+  /** Файл: ссылка, по которой канал заберёт его сам (signFileLink), или данные — для каналов, куда файл загружают.
+   *  path — путь к файлу на диске сервера проекта (для своего шлюза, который читает файлы с того же диска) */
+  file?: {
+    name: string; mime: string; url?: string | undefined; path?: string | undefined; data?: Uint8Array | undefined;
+    /** Голосовое, записанное в поле ввода, — отправить голосовым сообщением (где канал умеет), а не файлом */
+    voice?: boolean | undefined;
+  } | undefined;
   /** Ответ на сообщение клиента — его номер у канала (канал покажет цитату) */
   replyTo?: { externalId: string } | null | undefined;
   /** Кто пишет — сотрудник из CRM */

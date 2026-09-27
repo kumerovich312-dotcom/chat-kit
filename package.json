@@ -29,6 +29,26 @@
       "types": "./dist/channels/studio/index.d.ts",
       "default": "./dist/channels/studio/index.js"
     },
+    "./telegram": {
+      "types": "./dist/channels/telegram/index.d.ts",
+      "default": "./dist/channels/telegram/index.js"
+    },
+    "./instagram": {
+      "types": "./dist/channels/instagram/index.d.ts",
+      "default": "./dist/channels/instagram/index.js"
+    },
+    "./green-api": {
+      "types": "./dist/channels/green-api/index.d.ts",
+      "default": "./dist/channels/green-api/index.js"
+    },
+    "./calls": {
+      "types": "./dist/channels/calls/index.d.ts",
+      "default": "./dist/channels/calls/index.js"
+    },
+    "./ai": {
+      "types": "./dist/ai/index.d.ts",
+      "default": "./dist/ai/index.js"
+    },
     "./styles.css": "./dist/ui/styles.css",
     "./package.json": "./package.json"
   },

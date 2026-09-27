@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Чат на сайте — проверка виджета</title>
+    <style>
+      /* Страница-пример: «сайт компании» с чатом и пульт проверки. Стили страницы нарочно грубые (шрифт с засечками,
+         свои кнопки и поля) — виджет живёт в Shadow DOM, и его вид от них не зависит. */
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 17px/1.55 Georgia, "Times New Roman", serif; color: #1d232b; background: #fbfaf7; }
+      button, select, input, textarea { font: inherit; }
+      .bench {
+        position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+        padding: 10px 16px; font: 14px/1.4 system-ui, sans-serif; background: #20242b; color: #f2f4f7;
+      }
+      .bench b { font-weight: 600; }
+      .bench .group { display: flex; align-items: center; gap: 6px; }
+      .swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #20242b; outline: 2px solid transparent; cursor: pointer; padding: 0; }
+      .swatch[aria-pressed="true"] { outline-color: #f2f4f7; }
+      .bench select, .bench button.plain { background: #343a44; color: #f2f4f7; border: 1px solid #4b5360; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+      .bench label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+      .site { max-width: 760px; padding: 32px 24px 120px; }
+      .site header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 40px; }
+      .logo { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+      .site nav { display: flex; gap: 18px; color: #5d6673; }
+      h1 { font-size: 40px; line-height: 1.15; margin: 0 0 12px; }
+      .lead { font-size: 20px; color: #444c57; margin: 0 0 28px; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 36px; }
+      .card { padding: 16px; background: #fff; border: 1px solid #e6e2d9; border-radius: 4px; }
+      .card h3 { margin: 0 0 6px; font-size: 18px; }
+      .card p { margin: 0; font-size: 15px; color: #5d6673; }
+      .crm { font: 14px/1.45 system-ui, sans-serif; background: #fff; border: 1px solid #d9dde3; border-radius: 10px; padding: 16px; }
+      .crm h2 { font-size: 16px; margin: 0 0 4px; }
+      .crm .hint { margin: 0 0 12px; color: #6b7280; }
+      .feed { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow: auto; }
+      .feed li { padding: 6px 10px; border-radius: 8px; background: #f3f4f6; }
+      .feed li.system { background: transparent; color: #6b7280; font-size: 13px; text-align: center; }
+      .feed li.visitor { background: #eef4ff; }
+      .feed li.company { background: #effaf3; }
+      .feed .who { font-weight: 600; margin-right: 6px; }
+      .feed .empty { background: none; color: #9ca3af; }
+      .reply { display: flex; flex-direction: column; gap: 8px; }
+      .reply textarea { width: 100%; min-height: 64px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; resize: vertical; font: 14px/1.4 system-ui, sans-serif; }
+      .reply .row { display: flex; flex-wrap: wrap; gap: 6px; }
+      .reply button { padding: 6px 12px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; font: 14px system-ui, sans-serif; }
+      .reply button.primary { background: #1d232b; color: #fff; border-color: #1d232b; }
+      .flash { min-height: 20px; color: #b45309; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="bench" role="toolbar" aria-label="Пульт проверки виджета">
+      <b>Пульт проверки</b>
+      <div class="group" id="colors" aria-label="Цвет"></div>
+      <label>Сторона
+        <select id="position">
+          <option value="right">справа</option>
+          <option value="left">слева</option>
+        </select>
+      </label>
+      <label>Форма перед чатом
+        <select id="prechat">
+          <option value="off">нет</option>
+          <option value="optional">имя и телефон, по желанию</option>
+          <option value="required">имя + телефон или почта, обязательно</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="online" checked /> компания на связи</label>
+      <button type="button" class="plain" id="reset">Новый посетитель</button>
+    </div>
+
+    <main class="site">
+      <header>
+        <div class="logo">Пример</div>
+        <nav><span>Услуги</span><span>Цены</span><span>Контакты</span></nav>
+      </header>
+      <h1>Сайт компании «Пример»</h1>
+      <p class="lead">Так чат выглядит на сайте. Кнопка — в углу экрана: напишите сообщение как посетитель, а ответьте ниже — как менеджер из CRM.</p>
+      <div class="cards">
+        <div class="card"><h3>Консультация</h3><p>Ответим на вопросы и поможем выбрать.</p></div>
+        <div class="card"><h3>Доставка</h3><p>По городу — в день заказа.</p></div>
+        <div class="card"><h3>Оплата</h3><p>Картой, переводом или наличными.</p></div>
+      </div>
+
+      <section class="crm" aria-labelledby="crm-title">
+        <h2 id="crm-title">Как это видит CRM</h2>
+        <p class="hint">Здесь — переписка, как она пришла в CRM, и поле ответа менеджера. Сервер на этой странице ненастоящий: всё живёт в браузере. Через 2–3 секунды после первого сообщения «менеджер» ответит сам.</p>
+        <ol class="feed" id="feed"></ol>
+        <div class="reply">
+          <textarea id="reply" placeholder="Ответ посетителю…" aria-label="Ответ менеджера"></textarea>
+          <div class="row">
+            <button type="button" class="primary" id="send-reply">Ответить</button>
+            <button type="button" data-quick="photo">Фото</button>
+            <button type="button" data-quick="file">Файл</button>
+            <button type="button" data-quick="voice">Голосовое</button>
+            <button type="button" data-quick="link">Ссылка</button>
+          </div>
+          <div class="flash" id="flash" role="status"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./demo.ts"></script>
+  </body>
+</html>

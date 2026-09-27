@@ -31,6 +31,12 @@ describe("выпуск", () => {
     expect(typeof (await load("server/index.js")).ingest).toBe("function");
     expect(typeof (await load("channels/nextbot/index.js")).createNextbotAdapter).toBe("function");
     expect(typeof (await load("channels/studio/index.js")).createStudioAdapter).toBe("function");
+    expect(typeof (await load("channels/telegram/index.js")).createTelegramAdapter).toBe("function");
+    expect(typeof (await load("channels/instagram/index.js")).createInstagramAdapter).toBe("function");
+    expect(typeof (await load("channels/green-api/index.js")).createGreenApiAdapter).toBe("function");
+    expect(typeof (await load("channels/calls/index.js")).createCallsAdapter).toBe("function");
+    expect(typeof (await load("ai/index.js")).createClaudeAi).toBe("function");
+    expect(typeof core.defineProfile).toBe("function");
     expect(existsSync(join(root, "dist", "ui", "styles.css"))).toBe(true);
     expect(readFileSync(join(root, "dist", "ui", "Composer.js"), "utf8").startsWith('"use client"')).toBe(true);
   });
