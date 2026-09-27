@@ -28,4 +28,5 @@ export * from "./Gallery.js";
 export * from "./Strip.js";
 export * from "./Recorder.js";
 export * from "./QuickActions.js";
+export * from "./Stats.js";
 export * from "./ChatWindow.js";

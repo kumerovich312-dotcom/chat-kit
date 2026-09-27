@@ -2489,6 +2489,169 @@ a.ck-quote:hover {
   color: var(--ck-ink);
 }
 
+/* ── Статистика ответов ─────────────────────────────────────────────────────────────────────────────────────── */
+
+.ck-stats__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+}
+.ck-stats__card {
+  padding: 12px 14px;
+  border: 1px solid var(--ck-line);
+  border-radius: var(--ck-radius);
+  background: var(--ck-surface);
+}
+.ck-stats__card--bad {
+  border-color: var(--ck-red-line);
+  background: var(--ck-red-soft);
+}
+.ck-stats__card--good {
+  border-color: var(--ck-ok-line);
+  background: var(--ck-ok-soft);
+}
+.ck-stats__label {
+  color: var(--ck-muted);
+  font-size: var(--ck-text-sm);
+}
+.ck-stats__value {
+  margin-top: 2px;
+  color: var(--ck-ink);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.ck-stats__card--bad .ck-stats__value {
+  color: var(--ck-red);
+}
+.ck-stats__sub {
+  margin-top: 2px;
+  color: var(--ck-sub);
+  font-size: var(--ck-text-xs);
+}
+.ck-stats__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ck-text-sm);
+}
+.ck-stats__table th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--ck-line);
+  color: var(--ck-muted);
+  font-weight: 500;
+  text-align: left;
+}
+.ck-stats__table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--ck-line-soft);
+  color: var(--ck-body);
+}
+.ck-stats__table td:not(:first-child),
+.ck-stats__table th:not(:first-child) {
+  text-align: right;
+}
+.ck-stats__ch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ck-stats__bad {
+  color: var(--ck-red);
+  font-weight: 600;
+}
+.ck-stats__chart {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 180px;
+  padding: 8px 0 22px;
+  border-bottom: 1px solid var(--ck-line-strong);
+}
+.ck-stats__target {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px dashed var(--ck-warn);
+  pointer-events: none;
+}
+.ck-stats__target span {
+  position: absolute;
+  top: -16px;
+  right: 0;
+  color: var(--ck-warn);
+  font-size: var(--ck-text-xs);
+}
+.ck-stats__col {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  min-width: 10px;
+}
+.ck-stats__bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--ck-accent);
+  opacity: 0.85;
+}
+.ck-stats__bar--late {
+  background: var(--ck-red);
+}
+.ck-stats__day {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  color: var(--ck-muted);
+  font-size: 10.5px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.ck-stats__slow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ck-stats__slowrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--ck-warn-line);
+  border-radius: var(--ck-radius-sm);
+  background: var(--ck-warn-soft);
+  color: var(--ck-body);
+  font-size: var(--ck-text-sm);
+  text-decoration: none;
+}
+.ck-stats__slowrow--waiting {
+  border-color: var(--ck-red-line);
+  background: var(--ck-red-soft);
+}
+.ck-stats__slowname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ck-ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ck-stats__slowwhen {
+  color: var(--ck-muted);
+  font-size: var(--ck-text-xs);
+}
+.ck-stats__slowwait {
+  color: var(--ck-warn);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ck-stats__slowrow--waiting .ck-stats__slowwait {
+  color: var(--ck-red);
+}
+
 /* ── Тёмная тема ──────────────────────────────────────────────────────────────────────────────────────────────
    Включается атрибутом data-ck-theme="dark" на <html> (или на любом блоке с окном); "auto" — как в системе.
    Проект, который задал свои светлые цвета в :root, задаёт и тёмные — своим правилом для [data-ck-theme="dark"]. */

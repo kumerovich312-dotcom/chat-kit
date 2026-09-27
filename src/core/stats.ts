@@ -499,6 +499,50 @@ export function durationText(sec: number | null | undefined): string {
   return h % 24 ? `${d} дн ${h % 24} ч` : `${d} дн`;
 }
 
+/* ── По дням и самые долгие ожидания — для страницы статистики ───────────────────────────────────────────────── */
+
+/** Один день периода: обращения, с ответом, медиана первого ответа, ждут сейчас */
+export type DayStats = { day: string; from: string; to: string; episodes: number; answered: number; medianSec: number | null; unanswered: number };
+
+/** Итоги по дням периода [from, to) — день по поясу компании (для графика «скорость ответа по дням») */
+export function statsByDay(episodes: readonly Episode[], o: StatsOptions & { timeZone?: string | undefined }): DayStats[] {
+  const from = ms(o.from);
+  const to = ms(o.to);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return [];
+  const out: DayStats[] = [];
+  const [y, m, d] = dayKey(from, o.timeZone).split("-").map(Number) as [number, number, number];
+  for (let i = 0; i < 400; i++) {
+    const start = Math.max(from, Date.parse(companyTime({ year: y, month: m, day: d + i }, o.timeZone)));
+    const end = Math.min(to, Date.parse(companyTime({ year: y, month: m, day: d + i + 1 }, o.timeZone)));
+    if (start >= to) break;
+    const s = responseStats(episodes, { ...o, from: start, to: end });
+    out.push({ day: dayKey(start, o.timeZone), from: iso(start), to: iso(end), episodes: s.episodes, answered: s.answered, medianSec: s.medianSec, unanswered: s.unanswered });
+  }
+  return out;
+}
+
+/** Самое долгое ожидание в обращении: ответ пришёл не сразу или ответа всё ещё нет */
+export type SlowEpisode = Episode & { waitedSec: number; waiting: boolean };
+
+/** Кого дольше всех заставили ждать за период: сначала те, кто ждёт до сих пор, потом самые долгие ответы */
+export function slowestEpisodes(episodes: readonly Episode[], o: StatsOptions & { limit?: number | undefined; minSec?: number | undefined }): SlowEpisode[] {
+  const from = ms(o.from);
+  const to = ms(o.to);
+  const now = o.now === undefined ? Date.now() : ms(o.now);
+  const out: SlowEpisode[] = [];
+  for (const e of episodes) {
+    const start = Date.parse(e.startedAt);
+    if (!(start >= from && start < to && start <= now)) continue;
+    const replied = e.repliedAt ? Date.parse(e.repliedAt) : NaN;
+    const dismissed = e.dismissedAt ? Date.parse(e.dismissedAt) : NaN;
+    if (dismissed <= now && !(replied <= dismissed)) continue;
+    const waiting = !(replied <= now);
+    const waitedSec = Math.round(((waiting ? now : replied) - start) / 1000);
+    if (waitedSec >= (o.minSec ?? 0)) out.push({ ...e, waitedSec, waiting });
+  }
+  return out.sort((a, b) => Number(b.waiting) - Number(a.waiting) || b.waitedSec - a.waitedSec).slice(0, o.limit ?? 10);
+}
+
 /* ── Сколько сообщений за период ─────────────────────────────────────────────────────────────────────────────── */
 
 export type MessageCounts = {
