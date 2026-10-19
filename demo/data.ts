@@ -72,6 +72,12 @@ export type DemoContact = {
 
 const NOW = Date.now();
 const at = (minutesAgo: number, sec = 0) => new Date(NOW - minutesAgo * 60_000 + sec * 1000).toISOString();
+/** Через days дней в hour:00 по Бишкеку (UTC+6) — для записи на приём */
+const onDay = (days: number, hour: number) => {
+  const d = new Date(NOW + days * 86_400_000);
+  d.setUTCHours(hour - 6, 0, 0, 0);
+  return d.toISOString();
+};
 
 let seq = 0;
 const id = () => `m${++seq}`;
@@ -138,7 +144,7 @@ export const THREADS: Record<string, ChatMessage[]> = {
     me(40, "Договор (пример).pdf", { attachments: [file("f-contract", "Договор (пример).pdf", "application/pdf", "/files/contract.pdf", { size: 1200 })] }),
     me(39, "Анкета.docx", { attachments: [file("f-docx", "Анкета.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "/files/questionnaire.docx", { size: 3100 })], delivery: "delivered" }),
     me(38, "Записала вас на пятницу:", {
-      card: { type: "appointment", data: { at: at(-3 * 24 * 60 + 600), service: "Консультация", specialist: "Д. Асанова", status: "planned" } },
+      card: { type: "appointment", data: { at: onDay(3, 10), service: "Консультация", specialist: "Д. Асанова", status: "planned" } },
     }),
     { id: id(), at: at(30), kind: "call", author: { type: "client" }, channel: "call", text: "Пропущенный звонок", call: { direction: "in", missed: true } },
     client(12, "А во сколько точно? Мне *очень* важно прийти утром", { replyTo: { id: greet.id } }),
