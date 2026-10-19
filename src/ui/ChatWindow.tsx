@@ -3,10 +3,10 @@ import type { AiAnswer, SendResult } from "../core/composer.js";
 import type { Assessment, Assignee, BotState, DialogStatus, Presence } from "../core/conversation.js";
 import type { ChatMessage } from "../core/model.js";
 import { fromHuman } from "../core/model.js";
-import { defineProfile, type ChatProfile } from "../core/profile.js";
+import { defineProfile, type ChatProfile, type Look } from "../core/profile.js";
 import { snoozeChoices } from "../core/team.js";
 import { dayLabel, fmtClock } from "../core/time.js";
-import { BotControls, BotFeedback, BotMemory, TeachExample, type MemoryFact, type Rating } from "./Bot.js";
+import { BotControls, BotFeedback, BotMemory, BotToggle, TeachExample, type MemoryFact, type Rating } from "./Bot.js";
 import { ChatFind } from "./ChatFind.js";
 import { ChatScroller, type OlderMessages } from "./ChatScroller.js";
 import { ChatThread, whoWrote, type ThreadProps } from "./ChatThread.js";
@@ -15,10 +15,12 @@ import { DialogHeader } from "./DialogHeader.js";
 import { DialogList, type DialogListProps, type LinkLike } from "./DialogList.js";
 import { ThreadFilter } from "./Filter.js";
 import { ClientGallery, type GalleryFile } from "./Gallery.js";
+import { FilterButton, GalleryButton, SidePanel, SummaryButton } from "./Panels.js";
 import { PendingBubbles, PendingProvider } from "./Pending.js";
+import { StageMenu } from "./Stage.js";
 import { DialogStrip } from "./Strip.js";
 import { SummaryBar } from "./Summary.js";
-import { WaitBar } from "./Wait.js";
+import { HandoffBanner, WaitBar } from "./Wait.js";
 
 /* Окно переписки целиком — для быстрого подключения: слева диалоги, в центре переписка с полем ввода, справа — память
    бота о клиенте и панель проекта (заявка, запись, заказ). На телефоне — либо список, либо открытый диалог. Годится для
@@ -33,7 +35,14 @@ import { WaitBar } from "./Wait.js";
      «не отвечать»): менеджер сам выбирает — вставить, отправить как есть или скрыть;
    - что бот знает о клиенте — рядом с перепиской; «Сделать примером для бота» — у ответов менеджеров;
    - фильтр сообщений — кнопкой в шапке, строка над лентой; все файлы клиента — галерея поверх окна; статус, метки и
-     ответственный — полосой под шапкой; «Кратко» — кнопкой, плашка сверху ленты; свои кнопки проекта — меню «+». */
+     ответственный — полосой под шапкой; «Кратко» — кнопкой, плашка сверху ленты; свои кнопки проекта — меню «+».
+
+   Вид «Мессенджер» (паспорт: look, макет пользователя 19.10.2026) — отдельная тема рядом с обычным видом:
+   - в шапке — этап рядом с именем, переключатель бота, кнопки проекта, лупа и кнопка панели диалога;
+   - под шапкой — плашка «ИИ-агент передал чат вам» с коротким пересказом (brief) и «ждёт 13 мин»;
+   - полоса статуса и меток, «Кратко», фильтр, все файлы, «не отвечать этому клиенту», что бот знает и панель проекта —
+     в панели диалога сбоку (решение пользователя: «в боковую панель»);
+   - в поле ввода — заметка и письмо значками (решение пользователя: «значок в поле»), быстрые ответы кнопками. */
 
 type FormAction = (form: FormData) => void | Promise<void>;
 
@@ -90,6 +99,11 @@ export type ChatWindowDialog = {
   files?: readonly GalleryFile[] | undefined;
   /** Есть сообщения раньше показанных */
   older?: OlderMessages | null | undefined;
+  /** Этап заявки, записи, сделки — меню рядом с именем (этапы — паспорт: stages); форма: stage */
+  stage?: string | null | undefined;
+  stageAction?: FormAction | undefined;
+  /** Коротко, о чём разговор, — в плашке «бот передал чат» (вид «Мессенджер»): из «Кратко» или причина передачи */
+  brief?: string | null | undefined;
   /** Над лентой: свои пометки проекта */
   above?: ReactNode;
   /** В начале ленты: своё */
@@ -114,6 +128,8 @@ export type ChatWindowProps = {
   side?: ReactNode;
   /** Паспорт проекта: слова отрасли, что включено, метки, карточки, кнопки (defineProfile) */
   profile?: ChatProfile | undefined;
+  /** Вид окна поверх паспорта: classic или messenger */
+  look?: Look | undefined;
   /** Кто смотрит — «вы», «Мои», «Айгерим пишет ответ» не про себя */
   meId?: string | null | undefined;
   /** Диалог выбран явно — на телефоне показываем его, а не список */
@@ -124,8 +140,10 @@ export type ChatWindowProps = {
   empty?: ReactNode;
 };
 
-export function ChatWindow({ list, dialog, side, profile, meId: me, picked = false, timeZone, now, Link, empty }: ChatWindowProps) {
+export function ChatWindow({ list, dialog, side, profile, look: lookProp, meId: me, picked = false, timeZone, now, Link, empty }: ChatWindowProps) {
   const pf = profile ?? defineProfile(timeZone ? { timeZone } : {});
+  const look: Look = lookProp ?? pf.look;
+  const messenger = look === "messenger";
   const t = pf.texts;
   const fe = pf.features;
   const tz = timeZone ?? (profile ? pf.timeZone : undefined);
@@ -184,11 +202,29 @@ export function ChatWindow({ list, dialog, side, profile, meId: me, picked = fal
     || (fe.assessment && (dialog.assessment?.urgency === "high" || dialog.assessment?.mood === "negative"))
   );
   const composer = dialog?.composer;
+  const stripNode = dialog && strip ? (
+    <DialogStrip t={t} timeZone={tz} now={at} meId={meId}
+      status={fe.statuses ? dialog.status : undefined} snoozedUntil={dialog.snoozedUntil}
+      tags={fe.tags ? dialog.tags : undefined} tagDefs={pf.tags}
+      assignee={fe.assignee ? dialog.assignee : null} managers={dialog.managers}
+      assessment={fe.assessment ? dialog.assessment : null}
+      presence={fe.presence ? dialog.presence : undefined}
+      snoozeChoices={dialog.snoozeChoices ?? snoozeChoices(at, tz)}
+      actions={{
+        status: fe.statuses ? dialog.statusAction : undefined,
+        tags: fe.tags ? dialog.tagsAction : undefined,
+        assign: fe.assignee ? dialog.assignAction : undefined,
+      }} />
+  ) : null;
+  const summary = fe.summary && !!dialog?.summaryAction;
+  const stage = dialog && pf.stages.length > 0 && (dialog.stage || dialog.stageAction)
+    ? <StageMenu stage={dialog.stage} stages={pf.stages} action={dialog.stageAction} t={t} />
+    : null;
 
   return (
-    <div className={`ck ck-window${picked && dialog ? " ck-window--picked" : ""}`}>
+    <div className={`ck ck-window${picked && dialog ? " ck-window--picked" : ""}${messenger ? " ck-look--messenger" : ""}`}>
       <div className="ck-window__list">
-        <DialogList {...list} timeZone={list.timeZone ?? tz} now={list.now ?? now} Link={list.Link ?? Link} meId={meId}
+        <DialogList {...list} timeZone={list.timeZone ?? tz} now={list.now ?? now} Link={list.Link ?? Link} meId={meId} look={list.look ?? look}
           t={list.t ?? t} tags={list.tags ?? (fe.tags ? pf.tags : undefined)} mine={list.mine ?? (fe.assignee && !!meId)} />
       </div>
       <div className="ck-window__chat">
@@ -196,28 +232,24 @@ export function ChatWindow({ list, dialog, side, profile, meId: me, picked = fal
           <div className="ck-empty">{empty ?? <div className="ck-empty__title">Выберите диалог слева</div>}</div>
         ) : (
           <>
-            <DialogHeader name={dialog.name} channel={dialog.channel} contact={dialog.contact} note={dialog.note}
-              cardHref={dialog.cardHref} backHref={dialog.backHref} Link={Link} t={t}
-              find={fe.find} filter={fe.filter} gallery={fe.gallery} files={files.length} summary={fe.summary && !!dialog.summaryAction}
-              actions={<>{bot ? <BotControls state={bot.state} action={bot.action} timeZone={tz} t={t} /> : null}{dialog.headerActions}</>} />
-            {strip ? (
-              <DialogStrip t={t} timeZone={tz} now={at} meId={meId}
-                status={fe.statuses ? dialog.status : undefined} snoozedUntil={dialog.snoozedUntil}
-                tags={fe.tags ? dialog.tags : undefined} tagDefs={pf.tags}
-                assignee={fe.assignee ? dialog.assignee : null} managers={dialog.managers}
-                assessment={fe.assessment ? dialog.assessment : null}
-                presence={fe.presence ? dialog.presence : undefined}
-                snoozeChoices={dialog.snoozeChoices ?? snoozeChoices(at, tz)}
-                actions={{
-                  status: fe.statuses ? dialog.statusAction : undefined,
-                  tags: fe.tags ? dialog.tagsAction : undefined,
-                  assign: fe.assignee ? dialog.assignAction : undefined,
-                }} />
-            ) : null}
+            {messenger ? (
+              <DialogHeader name={dialog.name} channel={dialog.channel} contact={dialog.contact} note={dialog.note}
+                cardHref={dialog.cardHref} backHref={dialog.backHref} Link={Link} t={t} nameExtra={stage}
+                find={fe.find} side
+                actions={<>{bot ? <BotToggle state={bot.state} action={bot.action} timeZone={tz} t={t} /> : null}{dialog.headerActions}</>} />
+            ) : (
+              <DialogHeader name={dialog.name} channel={dialog.channel} contact={dialog.contact} note={dialog.note}
+                cardHref={dialog.cardHref} backHref={dialog.backHref} Link={Link} t={t} nameExtra={stage}
+                find={fe.find} filter={fe.filter} gallery={fe.gallery} files={files.length} summary={summary}
+                actions={<>{bot ? <BotControls state={bot.state} action={bot.action} timeZone={tz} t={t} /> : null}{dialog.headerActions}</>} />
+            )}
+            {messenger ? (
+              dialog.waitSince ? <HandoffBanner since={dialog.waitSince} now={now} handoff={dialog.handoff} brief={dialog.brief} dismissAction={dialog.dismissAction} t={t} /> : null
+            ) : stripNode}
             <PendingProvider key={dialog.id}>
               <div className="ck-window__body">
                 {dialog.above}
-                {fe.summary && dialog.summaryAction ? <SummaryBar key={`sum-${dialog.id}`} action={dialog.summaryAction} t={t} timeZone={tz} /> : null}
+                {summary && !messenger ? <SummaryBar key={`sum-${dialog.id}`} action={dialog.summaryAction!} t={t} timeZone={tz} /> : null}
                 {fe.find ? <ChatFind key={`find-${dialog.id}`} initial={dialog.findInitial} moreHref={dialog.findMoreHref} /> : null}
                 {fe.filter ? <ThreadFilter key={`filter-${dialog.id}`} t={t} /> : null}
                 <ChatScroller className="ck-window__feed" lastKey={last?.id ?? 0} dialogKey={dialog.id} older={dialog.older}>
@@ -225,15 +257,15 @@ export function ChatWindow({ list, dialog, side, profile, meId: me, picked = fal
                   {dialog.messages.length === 0 ? (
                     <div className="ck-empty">{dialog.empty ?? <div className="ck-empty__title">Сообщений пока нет</div>}</div>
                   ) : null}
-                  <ChatThread {...dialog.thread} renderActions={renderActions} messages={dialog.messages} timeZone={tz} now={now}
+                  <ChatThread look={look} {...dialog.thread} renderActions={renderActions} messages={dialog.messages} timeZone={tz} now={now}
                     t={t} cards={pf.cards} currency={pf.currency} meId={dialog.thread?.meId ?? meId} clientName={dialog.thread?.clientName ?? dialog.name}
                     canReply={dialog.thread?.canReply ?? (!!composer && !composer.noteOnly)}
                     transcribeAction={fe.transcribe ? dialog.transcribeAction ?? dialog.thread?.transcribeAction : undefined} />
                   <PendingBubbles />
                 </ChatScroller>
-                {dialog.waitSince ? <WaitBar since={dialog.waitSince} now={now} handoff={dialog.handoff} dismissAction={dialog.dismissAction} t={t} /> : null}
+                {dialog.waitSince && !messenger ? <WaitBar since={dialog.waitSince} now={now} handoff={dialog.handoff} dismissAction={dialog.dismissAction} t={t} /> : null}
                 {dialog.composerNode ?? (composer
-                  ? <Composer key={`composer-${dialog.id}`} t={t} voice={fe.voice && fe.files} meId={meId}
+                  ? <Composer key={`composer-${dialog.id}`} t={t} voice={fe.voice && fe.files} meId={meId} look={look}
                       {...composer}
                       modes={composer.modes ?? fe.modes ?? undefined}
                       templates={fe.templates ? composer.templates : undefined}
@@ -252,7 +284,24 @@ export function ChatWindow({ list, dialog, side, profile, meId: me, picked = fal
           </>
         )}
       </div>
-      {side || memory ? <aside className="ck-window__side ck-scroll">{memory}{side}</aside> : null}
+      {messenger && dialog ? (
+        <SidePanel key={`side-${dialog.id}`} className="ck-window__side" t={t}>
+          {stripNode ? <section className="ck-side__section"><h4 className="ck-side__title">{t.panelDialog}</h4>{stripNode}</section> : null}
+          {summary || fe.filter || (fe.gallery && files.length > 0) ? (
+            <section className="ck-side__section">
+              <div className="ck-side__tools">
+                {summary ? <SummaryButton t={t} /> : null}
+                {fe.filter ? <FilterButton t={t} labeled /> : null}
+                {fe.gallery && files.length > 0 ? <GalleryButton t={t} count={files.length} labeled /> : null}
+              </div>
+              {summary ? <SummaryBar key={`sum-${dialog.id}`} action={dialog.summaryAction!} t={t} timeZone={tz} /> : null}
+            </section>
+          ) : null}
+          {bot ? <section className="ck-side__section"><h4 className="ck-side__title">{t.panelBot}</h4><BotControls state={bot.state} action={bot.action} variant="bar" timeZone={tz} t={t} /></section> : null}
+          {memory ? <section className="ck-side__section">{memory}</section> : null}
+          {side ? <section className="ck-side__section">{side}</section> : null}
+        </SidePanel>
+      ) : !messenger && (side || memory) ? <aside className="ck-window__side ck-scroll">{memory}{side}</aside> : null}
     </div>
   );
 }

@@ -13,6 +13,14 @@ export const PROFILE: ProfileInput = {
   timeZone: TZ,
   phoneCode: "+996",
   currency: "сом",
+  // Этапы того, что ведём по клиенту, — меню рядом с именем в шапке
+  stages: [
+    { code: "new", label: "Новая заявка", tone: "blue" },
+    { code: "work", label: "В работе", tone: "accent" },
+    { code: "booked", label: "Записан", tone: "green" },
+    { code: "done", label: "Услуга оказана", tone: "gray" },
+    { code: "lost", label: "Отказ", tone: "red" },
+  ],
   tags: [
     { code: "vip", label: "VIP", tone: "violet" },
     { code: "new", label: "Новый", tone: "blue" },
@@ -68,6 +76,10 @@ export type DemoContact = {
   tags: string[];
   assignee: Assignee | null;
   assessment?: Assessment | null;
+  /** Вид «Мессенджер»: ярлык проекта в строке, этап в шапке, коротко о чём разговор */
+  chip?: string | null;
+  stage?: string | null;
+  brief?: string | null;
 };
 
 const NOW = Date.now();
@@ -95,18 +107,23 @@ export const CONTACTS: DemoContact[] = [
     bot: { mode: "manager", pausedUntil: at(-240), canPause: true, canMute: true }, dismissedAt: null, email: "azat@example.kg",
     status: "open", statusAt: at(3000), tags: ["vip"], assignee: ME,
     assessment: { mood: "negative", urgency: "high", reason: "третий раз спрашивает про время записи", at: at(12) },
+    chip: "пятница 10:00", stage: "booked", brief: "Записан на пятницу, просит точное время утром — третий раз спрашивает.",
   },
   {
     id: "2", name: "Бакыт Примеров", channel: "instagram", contact: "@bakyt_example", subtitle: "спрашивал про цены", unread: 0,
     bot: { mode: "bot", canPause: true, canMute: true }, dismissedAt: null, status: "open", statusAt: at(3000), tags: ["new"], assignee: null,
+    chip: "диагностика", stage: "new",
   },
   {
     id: "3", name: "Нургуль Образцова", channel: "telegram", contact: "@nurgul_demo", subtitle: "подбор услуги", unread: 0,
     bot: { mode: "bot", canPause: true, canMute: true }, dismissedAt: null, status: "open", statusAt: at(3000), tags: [], assignee: MANAGERS[1]!,
+    stage: "work",
   },
   {
     id: "4", name: "Эрлан Демо", channel: "whatsapp", contact: "+996 555 00-00-04", subtitle: "новое обращение", unread: 2,
-    bot: { mode: "bot", canPause: true, canMute: true }, dismissedAt: null, status: "open", statusAt: at(5000), tags: ["new"], assignee: null,
+    bot: { mode: "manager", handoff: "requested", reason: "нужно посчитать цену", canPause: true, canMute: true }, dismissedAt: null,
+    status: "open", statusAt: at(5000), tags: ["new"], assignee: null,
+    chip: "суббота", stage: "new", brief: "Хочет консультацию и диагностику в субботу, спрашивает, сколько стоит вместе.",
   },
   {
     id: "5", name: "Клиент из WhatsApp", channel: "whatsapp", contact: "+996 555 00-00-05", subtitle: "новое обращение", unread: 3,
@@ -117,10 +134,12 @@ export const CONTACTS: DemoContact[] = [
     id: "6", name: "Жылдыз Пример", channel: "email", contact: "jyldyz@example.kg", subtitle: "ждёт прайс на весну", unread: 0,
     bot: { mode: "muted", canPause: true, canMute: true }, dismissedAt: null, email: "jyldyz@example.kg",
     status: "snoozed", statusAt: at(2000), snoozedUntil: at(-24 * 60), tags: ["regular"], assignee: ME,
+    chip: "весенний сезон", stage: "work",
   },
   {
     id: "7", name: "Айбек Пробный", channel: "whatsapp", contact: "+996 555 00-00-07", subtitle: "услуга оказана", unread: 0,
     bot: { mode: "bot", canPause: true, canMute: true }, dismissedAt: null, status: "closed", statusAt: at(2 * 24 * 60), tags: ["regular"], assignee: MANAGERS[2]!,
+    stage: "done",
   },
 ];
 
@@ -164,8 +183,15 @@ export const THREADS: Record<string, ChatMessage[]> = {
     me(275, "Отправила вам подборку услуг и цен.", { channel: "telegram", delivery: "failed", deliveryError: "Telegram не принял сообщение: клиент ограничил сообщения" }),
   ],
   "4": [
-    client(2 * 24 * 60 + 30, "Здравствуйте"),
-    client(2 * 24 * 60 + 29, "Хочу записаться, что для этого нужно?"),
+    client(40, "Здравствуйте"),
+    client(39, "Хочу записаться, что для этого нужно?"),
+    bot(39, "Здравствуйте, Эрлан! Для записи нужны имя, удобный день и услуга. На какую услугу хотите записаться?"),
+    client(26, "Голосовое сообщение", {
+      attachments: [file("f-voice-4", "Голосовое сообщение", "audio/wav", "/files/voice-1.wav", {
+        size: 224044, transcript: "Мне нужна консультация и ещё диагностика, лучше в субботу. Сколько это будет стоить вместе?",
+      })],
+    }),
+    bot(25, "Понял вас! Чтобы точно посчитать цену и подобрать время в субботу, передаю вас менеджеру — он ответит в ближайшие минуты.", { handoff: true }),
   ],
   "5": [
     client(9, "Салам"),
@@ -242,7 +268,7 @@ export function suggestReply(clientText: string, name: string): string {
   const first = name.split(/\s+/)[0] ?? "";
   const hi = first && !/^клиент/i.test(first) ? `${first}, ` : "";
   if (/во сколько|время|утр/i.test(clientText)) return `${hi}в пятницу свободно 10:00 — записать вас на это время?`;
-  if (/стоят|цен|стоимост/i.test(clientText)) return `${hi}консультация — 1 000 сом, диагностика — 1 500 сом. На какую услугу вас записать?`;
+  if (/стоят|стоит|цен|стоимост/i.test(clientText)) return `${hi}консультация — 1 000 сом, диагностика — 1 500 сом. На какую услугу вас записать?`;
   if (/записаться|нужно/i.test(clientText)) return `${hi}для записи напишите удобный день и время — я всё оформлю.`;
   return `${hi}спасибо за сообщение! Уточню и отвечу в течение часа.`;
 }

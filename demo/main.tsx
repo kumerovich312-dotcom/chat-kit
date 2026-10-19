@@ -4,27 +4,37 @@ import "../src/ui/styles.css";
 import "./demo.css";
 import {
   defineProfile, effectiveStatus, fileWords, fromClient, NOUNS, plural, profileCss, readActionForm, readComposerForm, sortMessages, textMatches, waitKey, waitSince,
-  type AiAnswer, type Assignee, type BotState, type ChatMessage, type DialogStatus, type DialogSummary, type Presence,
+  type AiAnswer, type Assignee, type BotState, type ChatMessage, type DialogStatus, type DialogSummary, type Look, type Presence,
 } from "../src/core/index.js";
 import {
-  ChatWindow, NotifyToggle, WaitAlerts,
+  ChatWindow, NotifyToggle, PhoneIcon, WaitAlerts,
   type LinkLike, type ListFilter, type ListLinkOver, type ListStatus, type MemoryFact, type Rating, type ViewFile, type WaitEpisode,
 } from "../src/ui/index.js";
 import { CONTACTS, MANAGERS, ME, MEMORY, OLDER, PROFILE, PROJECT_FILES, suggestReply, TEMPLATES, THREADS, TRANSCRIPTS, TZ, type DemoContact } from "./data.js";
 
 // Демо-страница окна переписки: примерные данные, отправка и приход сообщений, ИИ — понарошку, в памяти страницы.
-// Вверху — как паспорт проекта меняет окно: слова отрасли, светлая / тёмная тема, цвет.
+// Вверху — как паспорт проекта меняет окно: вид (обычный / мессенджер), слова отрасли, светлая / тёмная тема, цвет.
+// Вид можно задать и адресом: ?look=messenger или ?look=classic.
 
 type Words = "client" | "patient" | "candidate";
 type Mode = "light" | "dark";
-type Accent = "blue" | "green" | "violet";
+type Accent = "base" | "green" | "violet";
 type Viewer = "owner" | "manager" | "manager-teach";
+
+// Для снимков: ?side=1 — панель диалога открыта, ?mode=dark — тёмная тема
+{
+  const sp = new URLSearchParams(location.search);
+  try {
+    if (sp.get("side")) localStorage.setItem("chat-kit.side", sp.get("side") === "1" ? "1" : "0");
+    if (sp.get("mode") === "dark" || sp.get("mode") === "light") localStorage.setItem("demo.mode", sp.get("mode")!);
+  } catch { /* без хранилища — как по умолчанию */ }
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 let counter = 1000;
 
 const ACCENTS: Record<Accent, Record<string, string>> = {
-  blue: {},
+  base: {},
   green: { "--ck-accent": "#0f8a5f", "--ck-accent-dark": "#0b6a49", "--ck-accent-soft": "#e3f5ec", "--ck-accent-line": "#b8e4cf", "--ck-accent-faint": "#f2fbf6", "--ck-out-meta": "rgb(11 106 73 / 75%)" },
   violet: { "--ck-accent": "#6d4ed8", "--ck-accent-dark": "#5236b3", "--ck-accent-soft": "#efeafd", "--ck-accent-line": "#d9cffa", "--ck-accent-faint": "#f8f5ff", "--ck-out-meta": "rgb(82 54 179 / 75%)" },
 };
@@ -69,7 +79,13 @@ function fakeImprove(text: string, mode: string): string {
 function App() {
   const [words, setWords] = useState<Words>(() => (localStorage.getItem("demo.words") as Words | null) ?? "client");
   const [mode, setMode] = useState<Mode>(() => (localStorage.getItem("demo.mode") as Mode | null) ?? "light");
-  const [accent, setAccent] = useState<Accent>(() => (localStorage.getItem("demo.accent") as Accent | null) ?? "blue");
+  const [accent, setAccent] = useState<Accent>(() => { const a = localStorage.getItem("demo.accent"); return a === "green" || a === "violet" ? a : "base"; });
+  const [look, setLook] = useState<Look>(() => {
+    const q = new URLSearchParams(location.search).get("look");
+    const v = q ?? localStorage.getItem("demo.look");
+    return v === "messenger" ? "messenger" : "classic";
+  });
+  const [stages, setStages] = useState<Record<string, string>>({});
   const [viewer, setViewer] = useState<Viewer>("owner");
   const [url, setUrl] = useState(readUrl);
   const [contacts, setContacts] = useState<DemoContact[]>(CONTACTS);
@@ -88,11 +104,13 @@ function App() {
     words: words === "patient" ? { client: NOUNS.patient, manager: NOUNS.administrator, order: NOUNS.appointment }
       : words === "candidate" ? { client: NOUNS.candidate, manager: NOUNS.recruiter, order: NOUNS.order } : {},
     theme: ACCENTS[accent],
-  }), [words, accent]);
+    look,
+  }), [words, accent, look]);
 
   useEffect(() => { document.documentElement.dataset.ckTheme = mode; localStorage.setItem("demo.mode", mode); }, [mode]);
   useEffect(() => { localStorage.setItem("demo.words", words); }, [words]);
   useEffect(() => { localStorage.setItem("demo.accent", accent); }, [accent]);
+  useEffect(() => { localStorage.setItem("demo.look", look); }, [look]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => { const back = () => setUrl(readUrl()); addEventListener("popstate", back); return () => removeEventListener("popstate", back); }, []);
 
@@ -126,10 +144,16 @@ function App() {
     const list = sortMessages(threads[c.id] ?? []).filter((m) => m.kind === "message");
     const last = list[list.length - 1];
     const lastText = last ? (last.card ? last.text || "Карточка" : last.text && !(last.attachments?.length && last.text === last.attachments[0]?.name) ? last.text : last.attachments?.[0] ? fileWords(last.attachments[0]) : last.text) : "";
+    // Голосовое с расшифровкой — в строке списка её начало
+    const voice = last?.attachments?.find((a) => a.mime.startsWith("audio/") && a.transcript);
+    const att = last?.attachments?.[0];
     return {
-      id: c.id, name: c.name, channel: c.channel, subtitle: c.subtitle, unread: c.unread, bot: c.bot,
+      id: c.id, name: c.name, channel: c.channel, subtitle: c.subtitle, unread: c.unread, bot: c.bot, chip: c.chip ?? null,
       waitSince: waitSince(threads[c.id] ?? [], c.dismissedAt),
-      last: last ? { text: lastText, at: last.at, author: last.author } : null,
+      last: last ? {
+        text: voice?.transcript ? `Голосовое: ${voice.transcript}` : lastText, at: last.at, author: last.author,
+        file: att ? { mime: att.mime, name: att.name } : null, delivery: last.delivery ?? null,
+      } : null,
       status: statusOf(c), snoozedUntil: c.snoozedUntil ?? null, tags: c.tags, assignee: c.assignee, assessment: c.assessment ?? null,
     };
   }).sort((a, b) => Date.parse(b.last?.at ?? "0") - Date.parse(a.last?.at ?? "0")), [contacts, threads, now]);
@@ -145,6 +169,9 @@ function App() {
   const messages = active ? withFiles(sortMessages(threads[active.id] ?? [])) : [];
   const since = active ? waitSince(messages, active.dismissedAt) : null;
   const lastChat = messages.filter((m) => m.kind === "message").at(-1);
+  // «Второй пилот» — на последнее сообщение клиента, пока он ждёт ответа (у голосового — по расшифровке)
+  const lastClient = messages.filter((m) => m.kind === "message" && fromClient(m)).at(-1);
+  const clientText = lastClient ? lastClient.attachments?.find((a) => a.transcript)?.transcript ?? lastClient.text : "";
 
   const link = (over: ListLinkOver) => {
     const sp = new URLSearchParams();
@@ -233,6 +260,11 @@ function App() {
   };
 
   const dismiss = async () => { if (active) patchContact(active.id, { dismissedAt: new Date().toISOString() }); };
+  const stageAction = async (fd: FormData) => {
+    if (!active) return;
+    await sleep(250);
+    setStages((x) => ({ ...x, [active.id]: String(fd.get("stage")) }));
+  };
 
   const botAction = async (fd: FormData) => {
     if (!active) return;
@@ -331,9 +363,10 @@ function App() {
       <style>{profileCss(profile, ':root:not([data-ck-theme="dark"])')}</style>
       <div className="demo-bar ck">
         <span className="demo-bar__title">chat-kit · демо</span>
+        <span className="demo-bar__group">Вид: {seg(look, (v) => { setLook(v); const sp = new URLSearchParams(location.search); sp.delete("look"); history.replaceState(null, "", `/${sp.toString() ? `?${sp}` : ""}`); }, [["classic", "Обычный"], ["messenger", "Мессенджер"]] as const)}</span>
         <span className="demo-bar__group">Слова: {seg(words, setWords, [["client", "Клиент"], ["patient", "Пациент"], ["candidate", "Кандидат"]] as const)}</span>
         <span className="demo-bar__group">Тема: {seg(mode, setMode, [["light", "Светлая"], ["dark", "Тёмная"]] as const)}</span>
-        <span className="demo-bar__group">Цвет: {seg(accent, setAccent, [["blue", "Синий"], ["green", "Зелёный"], ["violet", "Фиолетовый"]] as const)}</span>
+        <span className="demo-bar__group">Цвет: {seg(accent, setAccent, [["base", look === "messenger" ? "Оранжевый" : "Синий"], ["green", "Зелёный"], ["violet", "Фиолетовый"]] as const)}</span>
         <span className="demo-bar__group">Кто смотрит: {seg(viewer, setViewer, [["owner", "Владелец"], ["manager", "Менеджер"], ["manager-teach", "Менеджер с доступом к обучению"]] as const)}</span>
         <NotifyToggle />
         <button type="button" className="ck-btn ck-btn--sm" onClick={simulate}>{t.alertClientWrote} (проверить звонок)</button>
@@ -373,6 +406,7 @@ function App() {
               channels: all.reduce<Record<string, number>>((acc, d) => { const k = d.channel ?? "nextbot"; acc[k] = (acc[k] ?? 0) + 1; return acc; }, {}),
             },
             search: { action: "/", value: url.q },
+            compose: { href: "#новый-диалог", label: "Написать новому" },
             hasMore: visible.length > shown.length,
             moreLabel: `Показать ещё — сейчас ${shown.length}`,
           }}
@@ -384,6 +418,10 @@ function App() {
             note: active.channel !== "email" ? "сообщения идут в CRM" : null,
             cardHref: "#карточка",
             backHref: link({}),
+            headerActions: active.channel === "whatsapp" ? <a className="ck-iconbtn" href={`tel:${active.contact.replace(/[^+0-9]/g, "")}`} title="Позвонить" aria-label="Позвонить"><PhoneIcon /></a> : null,
+            stage: stages[active.id] ?? active.stage ?? null,
+            stageAction,
+            brief: active.brief ?? null,
             bot: { state: active.bot, action: botAction },
             teach: canTeach ? {
               rate: async (fd) => { await sleep(300); setRated((r) => ({ ...r, [String(fd.get("message_id"))]: String(fd.get("rating")) as Rating })); },
@@ -391,7 +429,7 @@ function App() {
               rated,
               examples,
             } : null,
-            copilot: lastChat && fromClient(lastChat) ? { text: suggestReply(lastChat.text, active.name) } : null,
+            copilot: since && lastClient ? { text: suggestReply(clientText, active.name) } : null,
             memory: { facts: (memory[active.id] ?? []) as MemoryFact[], action: canTeach ? memoryAction : undefined },
             messages,
             status: statusOf(active),

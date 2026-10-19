@@ -26,6 +26,7 @@ export * from "./Filter.js";
 export * from "./Summary.js";
 export * from "./Gallery.js";
 export * from "./Strip.js";
+export * from "./Stage.js";
 export * from "./Recorder.js";
 export * from "./QuickActions.js";
 export * from "./Stats.js";

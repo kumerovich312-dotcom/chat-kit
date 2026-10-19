@@ -4,13 +4,13 @@ import type { Attachment as Att, ChatMessage, MessageQuote } from "../core/model
 import { authorLabel, fromClient } from "../core/model.js";
 import { channelLabel } from "../core/channels.js";
 import { canView, fileKind, fileWords, textIsFileName } from "../core/files.js";
-import { DEFAULT_TEXTS, type CardDef, type Texts } from "../core/profile.js";
+import { DEFAULT_TEXTS, fill, type CardDef, type Look, type Texts } from "../core/profile.js";
 import { dayKey, dayLabel, fmtClock, fmtDuration, fullTime } from "../core/time.js";
 import { Attachment } from "./Attachment.js";
 import { BotChip, RichText } from "./bits.js";
 import { CardView } from "./Card.js";
 import { FileViewerHost, type RotateResult, type ViewFile } from "./FileViewer.js";
-import { CheckIcon, ClockIcon, DoubleCheckIcon, PhoneIcon, ReplyIcon } from "./icons.js";
+import { BotIcon, CheckIcon, ClockIcon, DoubleCheckIcon, HandIcon, PhoneIcon, ReplyIcon } from "./icons.js";
 import { Transcript } from "./Transcript.js";
 
 /* Лента диалога — как в WhatsApp: сообщения по дням, от старых к новым; у каждого — кто написал и время до секунды.
@@ -21,6 +21,8 @@ import { Transcript } from "./Transcript.js";
      (с записью разговора и её текстом);
    - ответ с цитатой — цитата сверху пузыря, щелчок по ней — к исходному сообщению; «Ответить» — у каждого сообщения;
    - своя карточка проекта (запись на приём, счёт) — по описанию из паспорта проекта (cards).
+   Вид «Мессенджер» (look): у ответа бота — значок бота сбоку пузыря, после передачи человеку — строка «ИИ-агент передал
+   чат менеджеру в 19:41», расшифровка голосового — прямо в пузыре.
    У каждой записи — data-f («кто и что»: client / bot / team, note / call, file / voice): по нему фильтр сообщений
    прячет лишнее, не перерисовывая ленту.
 
@@ -70,6 +72,8 @@ export type ThreadProps = {
   viewerActions?: ((m: ChatMessage, a: Att) => ReactNode) | undefined;
   /** «Сейчас» — для подписей «сегодня» и «вчера» */
   now?: number | undefined;
+  /** Вид окна (паспорт проекта: look) */
+  look?: Look | undefined;
 };
 
 /** Кто написал — для подписи файла в окне просмотра и галерее */
@@ -158,6 +162,7 @@ function Quote({ q, byId, t, p }: { q: MessageQuote; byId: ReadonlyMap<string, C
 }
 
 function Item({ m, p, t, bothChannels, byId }: { m: ChatMessage; p: ThreadProps; t: Texts; bothChannels: boolean; byId: ReadonlyMap<string, ChatMessage> }) {
+  const messenger = p.look === "messenger";
   const time = fmtClock(m.at, p.timeZone);
   const title = fullTime(m.at, p.timeZone);
   const f = filterTokens(m);
@@ -166,7 +171,7 @@ function Item({ m, p, t, bothChannels, byId }: { m: ChatMessage; p: ThreadProps;
     <Fragment key={a.id}>
       <Attachment a={a} />
       {fileKind(a.mime, a.name) === "audio" ? (
-        <Transcript messageId={m.id} attachmentId={a.id} text={a.transcript} action={p.transcribeAction} t={t} />
+        <Transcript messageId={m.id} attachmentId={a.id} text={a.transcript} action={p.transcribeAction} inline={messenger} t={t} />
       ) : null}
       {p.renderAttachmentExtra?.(m, a)}
     </Fragment>
@@ -210,8 +215,11 @@ function Item({ m, p, t, bothChannels, byId }: { m: ChatMessage; p: ThreadProps;
   const onlyFile = !!m.attachments?.length && textIsFileName(m.text, m.attachments);
   const cls = client ? "ck-msg ck-msg--in" : bot ? "ck-msg ck-msg--bot" : "ck-msg ck-msg--out";
   const snippet = (m.text.trim() || (m.attachments?.[0] ? fileWords(m.attachments[0]) : "")).slice(0, 120);
-  return (
+  // Вид «Мессенджер»: передачу человеку видно строкой после ответа бота, а не пометкой в пузыре
+  const handoffPill = messenger && bot && m.handoff && !m.shadow;
+  const bubble = (
     <div className={`${cls}${m.shadow ? " ck-msg--shadow" : ""}`} id={`ck-m-${m.id}`} data-message={m.id} data-f={f}>
+      {messenger && bot ? <span className="ck-msg__ava" aria-hidden="true"><BotIcon /></span> : null}
       {p.canReply && !m.shadow ? (
         <button type="button" className="ck-msg__reply" aria-label={t.reply} title={t.reply}
           data-ck-reply={m.id} data-ck-reply-who={labelOf(m.author, p, t)} data-ck-reply-text={snippet}>
@@ -221,7 +229,7 @@ function Item({ m, p, t, bothChannels, byId }: { m: ChatMessage; p: ThreadProps;
       {(bot || m.shadow) && (
         <div className="ck-msg__head">
           {bot ? <BotChip label={p.botName ?? t.authorBot} /> : null}
-          {m.handoff ? <span className="ck-badge ck-badge--warn">{t.handoffBadge}</span> : null}
+          {m.handoff && !handoffPill ? <span className="ck-badge ck-badge--warn">{t.handoffBadge}</span> : null}
           {m.shadow ? <span className="ck-badge ck-badge--bot">{t.shadowBadge}</span> : null}
         </div>
       )}
@@ -247,6 +255,13 @@ function Item({ m, p, t, bothChannels, byId }: { m: ChatMessage; p: ThreadProps;
       )}
       <Actions node={p.renderActions?.(m)} />
     </div>
+  );
+  if (!handoffPill) return bubble;
+  return (
+    <>
+      {bubble}
+      <div className="ck-sys ck-sys--handoff" data-f={f} title={title}><HandIcon /> {fill(t.handoffPill, { time: fmtClock(m.at, p.timeZone, false) })}</div>
+    </>
   );
 }
 

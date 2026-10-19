@@ -186,6 +186,30 @@ export function makeTexts(w: Words = DEFAULT_WORDS) {
     transcript: "Текст голосового",
     improve: "Улучшить текст",
     improveUndo: "Вернуть как было",
+    // Вид «Мессенджер» (макет пользователя 19.10.2026)
+    listAllChats: "Все чаты",
+    listFilters: "Фильтры списка",
+    listCompose: "Написать",
+    botOn: `${w.botLabel} отвечает`,
+    botOff: `${w.botLabel} на паузе`,
+    botOffMuted: `${w.botLabel} не отвечает`,
+    bannerHandoff: `${w.botLabel} передал чат вам`,
+    bannerWait: `${cap(C.one)} ждёт ответа`,
+    /** {time} — «19:41» */
+    handoffPill: `${w.botLabel} передал чат ${M.to} в {time}`,
+    transcriptLabel: "Расшифровка",
+    draftTitle: `Черновик ответа от ${B.of}`,
+    draftInsert: "Вставить",
+    draftSend: "Отправить как есть",
+    writePlaceholder: "Написать сообщение…",
+    noteToggle: `Заметка для команды — ${C.to} не уйдёт`,
+    emailToggle: "Письмо на почту",
+    emoji: "Смайлики",
+    moreTemplates: "Ещё",
+    panel: "Панель диалога",
+    panelDialog: "Диалог",
+    panelBot: cap(B.one),
+    stage: "Этап",
   };
 }
 
@@ -195,6 +219,13 @@ export const DEFAULT_TEXTS: Texts = makeTexts();
 export type Tone = "accent" | "blue" | "green" | "amber" | "red" | "violet" | "gray";
 
 export type ProfileTag = { code: string; label: string; tone?: Tone | undefined };
+
+/** Этап того, что проект ведёт по клиенту (заявка, запись, сделка): «Новый», «В работе», «Записан» — в шапке диалога */
+export type ProfileStage = { code: string; label: string; tone?: Tone | undefined };
+
+/** Вид окна: classic — спокойный рабочий (по умолчанию); messenger — как мессенджер (макет пользователя 19.10.2026):
+ *  обои в ленте, переключатель бота, плашка «бот передал чат», быстрые ответы кнопками, панель диалога сбоку */
+export type Look = "classic" | "messenger";
 
 /** Значок карточки и кнопки проекта — из набора (не картинкой: так он одинаково выглядит в любой теме) */
 export type ProfileIcon = "calendar" | "briefcase" | "receipt" | "box" | "doc" | "star" | "pin" | "user" | "money" | "check" | "clock" | "phone";
@@ -296,6 +327,10 @@ export type ChatProfile = {
   tags: readonly ProfileTag[];
   cards: Readonly<Record<string, CardDef>>;
   actions: readonly ComposerAction[];
+  /** Этапы заявки, записи, сделки — меню в шапке диалога */
+  stages: readonly ProfileStage[];
+  /** Вид окна */
+  look: Look;
   /** Цвета окна: { "--ck-accent": "#0f766e" } — profileCss() соберёт их в CSS */
   theme: Readonly<Record<string, string>>;
 };
@@ -311,6 +346,8 @@ export type ProfileInput = {
   tags?: readonly ProfileTag[] | undefined;
   cards?: Readonly<Record<string, CardDef>> | undefined;
   actions?: readonly ComposerAction[] | undefined;
+  stages?: readonly ProfileStage[] | undefined;
+  look?: Look | undefined;
   theme?: Readonly<Record<string, string>> | undefined;
 };
 
@@ -328,6 +365,8 @@ export function defineProfile(p: ProfileInput = {}): ChatProfile {
     tags: p.tags ?? [],
     cards: p.cards ?? {},
     actions: p.actions ?? [],
+    stages: p.stages ?? [],
+    look: p.look === "messenger" ? "messenger" : "classic",
     theme: p.theme ?? {},
   };
 }

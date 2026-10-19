@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { channelLabel } from "../core/channels.js";
 import { parseRich, type Dialect, type RichNode } from "../core/markup.js";
 import { initials } from "../core/text.js";
@@ -39,10 +39,18 @@ export function ChannelIcon({ channel, size = 16, className }: { channel: string
   );
 }
 
+/** Оттенок кружка по имени — у одного человека всегда один цвет (вид «Мессенджер»: пастельные кружки) */
+export function avatarHue(name: string | null | undefined): number {
+  let h = 0;
+  for (const ch of (name ?? "").trim().toLowerCase()) h = (h * 31 + (ch.codePointAt(0) ?? 0)) % 3600;
+  return Math.round(h / 10);
+}
+
 /** Кружок с инициалами; channel — значок канала в углу */
 export function Avatar({ name, size = 38, active = false, channel }: { name: string | null | undefined; size?: number; active?: boolean; channel?: string | null | undefined }) {
+  const style = { width: size, height: size, fontSize: Math.round(size * 0.36), "--ck-ava-h": avatarHue(name) } as CSSProperties;
   return (
-    <span className={`ck-avatar${active ? " ck-avatar--active" : ""}`} style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}>
+    <span className={`ck-avatar${active ? " ck-avatar--active" : ""}`} style={style}>
       {initials(name)}
       {channel ? <ChannelIcon channel={channel} size={Math.round(size * 0.45)} /> : null}
     </span>

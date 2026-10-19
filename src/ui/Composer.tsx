@@ -4,9 +4,9 @@ import { useEffect, useLayoutEffect, useRef, useState, useTransition, type React
 import type { AiAnswer, ComposerMode, SendResult, Template } from "../core/composer.js";
 import type { Presence } from "../core/conversation.js";
 import { channelLabel as labelOf } from "../core/channels.js";
-import { DEFAULT_TEXTS, fill, type ComposerAction, type Texts } from "../core/profile.js";
+import { DEFAULT_TEXTS, fill, type ComposerAction, type Look, type Texts } from "../core/profile.js";
 import { ChannelIcon } from "./bits.js";
-import { BoltIcon, ClipIcon, CloseIcon, MicIcon, PencilIcon, PlusIcon, ReplyIcon, SendIcon, WandIcon } from "./icons.js";
+import { BoltIcon, ChevronIcon, ClipIcon, CloseIcon, MailIcon, MicIcon, NoteIcon, PencilIcon, PlusIcon, ReplyIcon, SendIcon, SmileIcon, WandIcon } from "./icons.js";
 import { usePending } from "./Pending.js";
 import { BotDraft } from "./Bot.js";
 import { QuickForm, QuickMenu } from "./QuickActions.js";
@@ -22,6 +22,10 @@ import { presenceLine } from "./Strip.js";
    Ещё (решения пользователя 27.09.2026): ответ с цитатой («Ответить» у сообщения в ленте), запись голосового
    (микрофон, пока поле пустое), «Улучшить текст» (ИИ), свои кнопки проекта — меню «+», «Айгерим уже пишет ответ» —
    чтобы не ответить клиенту вдвоём.
+
+   Вид «Мессенджер» (макет пользователя 19.10.2026): вкладок нет — заметка и письмо значками в поле; над полем — быстрые
+   ответы кнопками (первые шаблоны и «Ещё»), «Черновик ответа» бота с «Вставить» (Tab в пустом поле); в поле — скрепка,
+   смайлики, микрофон; отправка — большой круглой кнопкой рядом с полем.
 
    Отправка — одна форма (FormData: mode, channel, direction, text, subject, file, file_id, reply_to, voice): годится и
    серверному действию Next.js, и обычной функции. Прочитать её — readComposerForm из ядра. */
@@ -83,12 +87,22 @@ export type ComposerProps = {
   meId?: string | null | undefined;
   /** Ответ с цитатой: «Ответить» у сообщений ленты (по умолчанию — да) */
   replies?: boolean | undefined;
+  /** Вид окна (паспорт проекта: look) */
+  look?: Look | undefined;
+  /** Сколько шаблонов показать кнопками над полем (вид «Мессенджер»), остальные — под «Ещё» */
+  quickCount?: number | undefined;
 };
 
 type Staged = { kind: "upload"; file: File; name: string; voice?: boolean } | { kind: "project"; id: string; name: string };
 type Reply = { id: string; who: string; text: string };
 
 const DEFAULT_MAX = 10 * 1024 * 1024;
+/** Смайлики под кнопкой в поле (вид «Мессенджер») — частые в переписке с клиентами */
+export const COMPOSER_EMOJI: readonly string[] = [
+  "😊", "🙂", "😉", "😂", "🙏", "👍", "👌", "👋", "🤝", "💪", "❤️", "🔥",
+  "🎉", "✅", "❗", "⭐", "📄", "📅", "📞", "📍", "💳", "🕐", "✍️", "💬",
+];
+
 const IMPROVE_MODES: readonly { mode: string; label: string }[] = [
   { mode: "polish", label: "Улучшить" },
   { mode: "fix", label: "Исправить ошибки" },
@@ -116,7 +130,7 @@ export function Composer(p: ComposerProps) {
   const [subject, setSubject] = useState(reSubject);
   const [dir, setDir] = useState<"out" | "in">("out");
   const [staged, setStaged] = useState<Staged | null>(null);
-  const [menu, setMenu] = useState<"files" | "templates" | "actions" | "improve" | null>(null);
+  const [menu, setMenu] = useState<"files" | "templates" | "actions" | "improve" | "emoji" | null>(null);
   const [quick, setQuick] = useState<ComposerAction | null>(null);
   const [reply, setReply] = useState<Reply | null>(null);
   const [undo, setUndo] = useState<string | null>(null);
@@ -140,6 +154,7 @@ export function Composer(p: ComposerProps) {
   const vars = p.actionVars ?? {};
   const recording = recorder.phase.kind === "rec" || recorder.phase.kind === "ready";
   const colleague = presenceLine(p.presence ?? [], p.meId, Date.now());
+  const messenger = p.look === "messenger";
 
   // Поле растёт вместе с текстом, дальше — прокрутка внутри
   const fit = () => {
@@ -200,6 +215,16 @@ export function Composer(p: ComposerProps) {
   };
 
   const insert = (x: string) => { setText(x); setMenu(null); area.current?.focus(); };
+  // Смайлик — туда, где стоит курсор
+  const insertAtCursor = (x: string) => {
+    const el = area.current;
+    const at = el ? el.selectionStart ?? text.length : text.length;
+    const end = el ? el.selectionEnd ?? at : at;
+    const next = text.slice(0, at) + x + text.slice(end);
+    setText(next);
+    setMenu(null);
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(at + x.length, at + x.length); });
+  };
   const [hidden, setHidden] = useState<string | null>(null);
   const copilot = p.copilot && p.copilot.text.trim() && hidden !== p.copilot.text ? p.copilot : null;
 
@@ -303,14 +328,80 @@ export function Composer(p: ComposerProps) {
     : mode === "email" ? "Текст письма…"
     : mode === "copy" ? (dir === "in" ? t.copyInPlaceholder : t.copyOutPlaceholder)
     : staged ? "Подпись к файлу (можно без неё)"
+    : messenger ? t.writePlaceholder
     : "Сообщение…";
 
   const showMic = canVoice && !ready && !recording;
   let lastGroup: string | undefined;
+  // Вид «Мессенджер»: заметка и письмо — значками в поле, вместо вкладок
+  const base = tabs.find((x) => x.key === "send" || x.key === "copy")?.key ?? first;
+  const canNote = tabs.some((x) => x.key === "note") && tabs.length > 1;
+  const canEmail = tabs.some((x) => x.key === "email");
+  const switchMode = (m: ComposerMode) => { setMode((cur) => (cur === m ? base : m)); setMenu(null); setError(""); area.current?.focus(); };
+  const templates = p.templates ?? [];
+  const chips = messenger && mode !== "note" && mode !== "email" && !recording ? templates.slice(0, p.quickCount ?? 3) : [];
+
+  const plusBtn = (p.actions?.length ?? 0) > 0 && p.onAction && mode !== "note" ? (
+    <button type="button" className="ck-round" aria-label={t.projectActions} title={t.projectActions} aria-expanded={menu === "actions"} onClick={() => setMenu(menu === "actions" ? null : "actions")}>
+      <PlusIcon />
+    </button>
+  ) : null;
+  const clipBtn = canFiles ? (
+    <button type="button" className="ck-round" aria-label="Прикрепить файл" aria-expanded={menu === "files"} onClick={() => setMenu(menu === "files" ? null : "files")}>
+      <ClipIcon />
+    </button>
+  ) : null;
+  const boltBtn = templates.length > 0 && mode !== "note" && !messenger ? (
+    <button type="button" className="ck-round" aria-label="Шаблоны" aria-expanded={menu === "templates"} onClick={() => setMenu(menu === "templates" ? null : "templates")}>
+      <BoltIcon />
+    </button>
+  ) : null;
+  const wandBtn = p.improveAction && text.trim() && mode !== "note" ? (
+    <button type="button" className="ck-round" aria-label={t.improve} title={t.improve} disabled={improving} aria-expanded={menu === "improve"}
+      onClick={() => setMenu(menu === "improve" ? null : "improve")}>
+      <WandIcon />
+    </button>
+  ) : null;
+  const modeBtns = messenger ? (
+    <>
+      {canNote ? (
+        <button type="button" className="ck-round ck-round--note" aria-label={t.noteToggle} title={t.noteToggle} aria-pressed={mode === "note"} onClick={() => switchMode("note")}>
+          <NoteIcon />
+        </button>
+      ) : null}
+      {canEmail ? (
+        <button type="button" className="ck-round" aria-label={t.emailToggle} title={p.emailTo ? `${t.emailToggle}: ${p.emailTo}` : t.emailToggle} aria-pressed={mode === "email"} onClick={() => switchMode("email")}>
+          <MailIcon />
+        </button>
+      ) : null}
+      <button type="button" className="ck-round ck-round--emoji" aria-label={t.emoji} title={t.emoji} aria-expanded={menu === "emoji"} onClick={() => setMenu(menu === "emoji" ? null : "emoji")}>
+        <SmileIcon />
+      </button>
+    </>
+  ) : null;
+  const sendBtn = showMic && !messenger ? (
+    <button type="button" className="ck-round ck-send ck-send--ready" aria-label="Записать голосовое" title="Записать голосовое" onClick={() => { setError(""); void recorder.start(); }}>
+      <MicIcon />
+    </button>
+  ) : (
+    <button type="submit" aria-label={sendLabel} title={messenger ? sendLabel : undefined}
+      className={messenger
+        ? `ck-sendbig${ready ? " ck-sendbig--ready" : ""}${mode === "note" ? " ck-sendbig--note" : ""}`
+        : `ck-round ck-send${ready ? (mode === "note" ? " ck-send--note" : " ck-send--ready") : ""}`}>
+      <SendIcon />
+    </button>
+  );
+  const micBtn = showMic && messenger ? (
+    <button type="button" className="ck-round" aria-label="Записать голосовое" title="Записать голосовое" onClick={() => { setError(""); void recorder.start(); }}>
+      <MicIcon />
+    </button>
+  ) : null;
+
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="ck-composer">
+    <form onSubmit={(e) => { e.preventDefault(); submit(); }} className={`ck-composer${messenger ? " ck-composer--m" : ""}`}>
       {copilot ? (
-        <BotDraft text={copilot.text} title={copilot.title ?? t.copilotTitle} onInsert={insert} onHide={() => setHidden(copilot.text)}
+        <BotDraft text={copilot.text} title={copilot.title ?? (messenger ? t.draftTitle : t.copilotTitle)} onInsert={insert} onHide={() => setHidden(copilot.text)}
+          compact={messenger} t={t}
           sendAction={async (fd) => { fd.set("channel", p.channel); fd.set("direction", "out"); setHidden(copilot.text); await (copilot.sendAction ?? p.action)(fd); }} />
       ) : null}
       {quick && p.onAction ? (
@@ -320,7 +411,7 @@ export function Composer(p: ComposerProps) {
       {p.above?.(insert)}
       {colleague?.typing ? <div className="ck-colleague" role="status"><PencilIcon /> {colleague.text}</div> : null}
       <div className="ck-composer__bar">
-        {tabs.length > 1 || mode === "copy" ? (
+        {!messenger && (tabs.length > 1 || mode === "copy") ? (
           <div className="ck-seg" role="group" aria-label="Куда пишем">
             {tabs.map((x) => (
               <button key={x.key} type="button" title={x.about} aria-pressed={mode === x.key} className="ck-seg__item"
@@ -354,6 +445,23 @@ export function Composer(p: ComposerProps) {
       ) : null}
 
       <div ref={box} style={{ position: "relative" }}>
+        {chips.length > 0 ? (
+          <div className="ck-replies" role="group" aria-label="Быстрые ответы">
+            {chips.map((x, i) => (
+              <button key={`${x.label}-${i}`} type="button" className="ck-replies__chip" title={x.text} onClick={() => insert(x.text)}>{x.label}</button>
+            ))}
+            {templates.length > chips.length ? (
+              <button type="button" className="ck-replies__chip ck-replies__more" aria-expanded={menu === "templates"} onClick={() => setMenu(menu === "templates" ? null : "templates")}>
+                {t.moreTemplates} <ChevronIcon dir="up" />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {menu === "emoji" && (
+          <div className="ck-pop ck-pop--right ck-emoji" role="dialog" aria-label={t.emoji}>
+            {COMPOSER_EMOJI.map((x) => <button key={x} type="button" className="ck-emoji__item" onClick={() => insertAtCursor(x)}>{x}</button>)}
+          </div>
+        )}
         {menu === "templates" && (
           <div className="ck-pop ck-scroll">
             <div className="ck-pop__head">Шаблоны — текст подставится в поле</div>
@@ -406,22 +514,11 @@ export function Composer(p: ComposerProps) {
         {recording ? (
           <RecorderBar r={recorder} onSend={sendVoice} />
         ) : (
-          <div className={`ck-field${mode === "note" ? " ck-field--note" : ""}`}>
-            {(p.actions?.length ?? 0) > 0 && p.onAction && mode !== "note" && (
-              <button type="button" className="ck-round" aria-label={t.projectActions} title={t.projectActions} aria-expanded={menu === "actions"} onClick={() => setMenu(menu === "actions" ? null : "actions")}>
-                <PlusIcon />
-              </button>
-            )}
-            {canFiles && (
-              <button type="button" className="ck-round" aria-label="Прикрепить файл" aria-expanded={menu === "files"} onClick={() => setMenu(menu === "files" ? null : "files")}>
-                <ClipIcon />
-              </button>
-            )}
-            {(p.templates?.length ?? 0) > 0 && mode !== "note" && (
-              <button type="button" className="ck-round" aria-label="Шаблоны" aria-expanded={menu === "templates"} onClick={() => setMenu(menu === "templates" ? null : "templates")}>
-                <BoltIcon />
-              </button>
-            )}
+          <div className={messenger ? "ck-composer__row" : "ck-composer__plain"}>
+          <div className={`ck-field${mode === "note" ? " ck-field--note" : ""}${mode === "email" && messenger ? " ck-field--email" : ""}`}>
+            {plusBtn}
+            {clipBtn}
+            {boltBtn}
             <div className="ck-field__main">
               {mode === "email" && (
                 <input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} aria-label="Тема письма"
@@ -442,6 +539,8 @@ export function Composer(p: ComposerProps) {
                 aria-label={mode === "note" ? "Текст заметки" : mode === "email" ? "Текст письма" : "Текст сообщения"}
                 onChange={(e) => { setText(e.target.value); if (undo !== null) setUndo(null); if (mode === "send" || mode === "email") ping(); }}
                 onKeyDown={(e) => {
+                  // Tab в пустом поле — вставить черновик бота
+                  if (e.key === "Tab" && !e.shiftKey && copilot && !text.trim()) { e.preventDefault(); insert(copilot.text); return; }
                   if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
                   // Письмо — длинный текст: Enter переносит строку, отправка — Ctrl+Enter. Ctrl+Enter работает везде
                   const send = e.ctrlKey || e.metaKey || (mode !== "email" && !e.shiftKey && !touch);
@@ -455,21 +554,12 @@ export function Composer(p: ComposerProps) {
                 placeholder={placeholder}
               />
             </div>
-            {p.improveAction && text.trim() && mode !== "note" ? (
-              <button type="button" className="ck-round" aria-label={t.improve} title={t.improve} disabled={improving} aria-expanded={menu === "improve"}
-                onClick={() => setMenu(menu === "improve" ? null : "improve")}>
-                <WandIcon />
-              </button>
-            ) : null}
-            {showMic ? (
-              <button type="button" className="ck-round ck-send ck-send--ready" aria-label="Записать голосовое" title="Записать голосовое" onClick={() => { setError(""); void recorder.start(); }}>
-                <MicIcon />
-              </button>
-            ) : (
-              <button type="submit" aria-label={sendLabel} className={`ck-round ck-send${ready ? (mode === "note" ? " ck-send--note" : " ck-send--ready") : ""}`}>
-                <SendIcon />
-              </button>
-            )}
+            {wandBtn}
+            {modeBtns}
+            {micBtn}
+            {messenger ? null : sendBtn}
+          </div>
+          {messenger ? sendBtn : null}
           </div>
         )}
       </div>
@@ -482,7 +572,7 @@ export function Composer(p: ComposerProps) {
         <div className="ck-hint">Текст улучшен · <button type="button" className="ck-link" onClick={() => { setText(undo); setUndo(null); area.current?.focus(); }}>{t.improveUndo}</button></div>
       ) : note ? (
         <div className="ck-hint" role="status">{note}</div>
-      ) : !touch && !recording ? (
+      ) : !touch && !recording && !messenger ? (
         <div className="ck-hint">{mode === "email" ? "Ctrl+Enter — отправить письмо" : "Enter — отправить, Shift+Enter — новая строка"}</div>
       ) : null}
     </form>

@@ -1,4 +1,4 @@
-import type { Author } from "./model.js";
+import type { Author, Delivery } from "./model.js";
 import { DEFAULT_TEXTS, fill, type Texts } from "./profile.js";
 
 /* Диалог в списке и состояние бота в диалоге — без базы. Список собирает проект (своим запросом к своей базе), окно
@@ -11,14 +11,23 @@ export type DialogSummary = {
   name: string;
   /** Канал последнего сообщения — значок у аватара */
   channel?: string | null | undefined;
-  /** Последнее сообщение: текст (или слова вместо файла), кто и когда написал */
-  last?: { text: string; at: string; author: Author } | null | undefined;
+  /** Последнее сообщение: текст (или слова вместо файла), кто и когда написал; file — значок фото, голосового, файла
+   *  перед текстом, delivery — галочки у своего (вид «Мессенджер») */
+  last?: {
+    text: string;
+    at: string;
+    author: Author;
+    file?: { mime: string; name?: string | null | undefined } | null | undefined;
+    delivery?: Delivery | null | undefined;
+  } | null | undefined;
   /** С какого времени клиент ждёт ответа (правило waitSince / waitSinceSql); null — не ждёт */
   waitSince?: string | null | undefined;
   /** Сколько сообщений клиента не прочитано */
   unread?: number | undefined;
   /** Строка под текстом: заявка, запись, заказ, «новое обращение» — что решит проект */
   subtitle?: string | null | undefined;
+  /** Короткий ярлык проекта рядом с именем: «KG → PL», «вылет 24.10», «стоматолог» (вид «Мессенджер») */
+  chip?: string | null | undefined;
   /** Найдено поиском в сообщении (не в последнем) — показать его вместо последнего */
   found?: { text: string; at: string } | null | undefined;
   /** Состояние бота в диалоге — пометка «бот на паузе», «не отвечать» */

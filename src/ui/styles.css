@@ -2773,3 +2773,1004 @@ a.ck-quote:hover {
 :where([data-ck-theme="dark"]) .ck-transcript__text {
   background: rgb(255 255 255 / 6%);
 }
+
+/* ── Вид «Мессенджер» (макет пользователя 19.10.2026) ──────────────────────────────────────────────────────────
+   Отдельная тема рядом с обычным видом: паспорт проекта look: "messenger" → у окна класс .ck-look--messenger.
+   Цвета по умолчанию — оранжевый акцент, мятный бот, обои в ленте; они стоят в :where(…) без веса, как и обычные,
+   поэтому любое :root проекта (profileCss, globals.css) главнее. Обои — узором из CSS (без картинок и адресов: работает
+   при строгих правилах безопасности страницы); свои обои — --ck-wallpaper: url(/chat-bg.svg). */
+
+:where(:root:has(.ck-look--messenger)) {
+  --ck-text: 14px;
+  --ck-text-sm: 12.5px;
+  --ck-text-xs: 11.5px;
+  --ck-text-lg: 17px;
+  --ck-radius: 14px;
+  --ck-radius-sm: 10px;
+  --ck-radius-bubble: 16px;
+}
+:where(:root:not([data-ck-theme="dark"]):has(.ck-look--messenger)) {
+  --ck-bg: #f4f2ef;
+  --ck-surface-soft: #faf9f7;
+  --ck-line: #ebe7e2;
+  --ck-line-soft: #f2efea;
+  --ck-line-strong: #d9d3cb;
+  --ck-accent: #f26a1b;
+  --ck-accent-dark: #d1560d;
+  --ck-accent-soft: #fff0e5;
+  --ck-accent-line: #ffd5ba;
+  --ck-accent-faint: #fff8f2;
+  --ck-accent-ink: #b0460a;
+  --ck-link: #c2510f;
+  --ck-link-hover: #96400b;
+  --ck-tick: #8d96a1;
+  --ck-voice: #f26a1b;
+  --ck-bot: #13854d;
+  --ck-bot-soft: #e1f6e8;
+  --ck-bot-line: #c2e9d0;
+  --ck-bot-meta: rgb(19 133 77 / 75%);
+  --ck-out-bg: var(--ck-accent-soft);
+  --ck-out-line: var(--ck-accent-line);
+  --ck-out-meta: rgb(176 70 10 / 70%);
+  --ck-bot-bg: var(--ck-bot-soft);
+  --ck-bot-bubble-line: var(--ck-bot-line);
+  --ck-wall: #efe9e1;
+  --ck-wall-ink: rgb(140 110 75 / 10%);
+  --ck-glow: rgb(242 106 27 / 28%);
+}
+:where([data-ck-theme="dark"]:has(.ck-look--messenger)) {
+  --ck-accent: #ff8a3d;
+  --ck-accent-dark: #ffad73;
+  --ck-accent-soft: #3b2415;
+  --ck-accent-line: #5e3518;
+  --ck-accent-faint: #26190f;
+  --ck-accent-ink: #ffc49b;
+  --ck-link: #ffa366;
+  --ck-link-hover: #ffc49b;
+  --ck-tick: #8e9aa9;
+  --ck-voice: #ff8a3d;
+  --ck-bot: #5fd39a;
+  --ck-bot-soft: #123020;
+  --ck-bot-line: #1f4a33;
+  --ck-bot-meta: rgb(95 211 154 / 75%);
+  --ck-out-bg: var(--ck-accent-soft);
+  --ck-out-line: var(--ck-accent-line);
+  --ck-out-meta: rgb(255 196 155 / 70%);
+  --ck-bot-bg: var(--ck-bot-soft);
+  --ck-bot-bubble-line: var(--ck-bot-line);
+  --ck-wall: #0c1117;
+  --ck-wall-ink: rgb(255 255 255 / 4.5%);
+  --ck-glow: rgb(0 0 0 / 40%);
+}
+@media (prefers-color-scheme: dark) {
+  :where([data-ck-theme="auto"]:has(.ck-look--messenger)) {
+    --ck-accent: #ff8a3d;
+    --ck-accent-dark: #ffad73;
+    --ck-accent-soft: #3b2415;
+    --ck-accent-line: #5e3518;
+    --ck-accent-faint: #26190f;
+    --ck-accent-ink: #ffc49b;
+    --ck-link: #ffa366;
+    --ck-link-hover: #ffc49b;
+    --ck-tick: #8e9aa9;
+    --ck-voice: #ff8a3d;
+    --ck-bot: #5fd39a;
+    --ck-bot-soft: #123020;
+    --ck-bot-line: #1f4a33;
+    --ck-bot-meta: rgb(95 211 154 / 75%);
+    --ck-out-bg: var(--ck-accent-soft);
+    --ck-out-line: var(--ck-accent-line);
+    --ck-out-meta: rgb(255 196 155 / 70%);
+    --ck-bot-bg: var(--ck-bot-soft);
+    --ck-bot-bubble-line: var(--ck-bot-line);
+    --ck-wall: #0c1117;
+    --ck-wall-ink: rgb(255 255 255 / 4.5%);
+    --ck-glow: rgb(0 0 0 / 40%);
+  }
+}
+
+/* Окно: список, переписка на обоях, панель диалога справа */
+.ck-look--messenger.ck-window {
+  position: relative;
+  background: var(--ck-surface);
+}
+.ck-look--messenger .ck-window__list {
+  width: 340px;
+}
+.ck-look--messenger .ck-window__body {
+  gap: 10px;
+  padding: 14px 22px;
+  background-color: var(--ck-wall, var(--ck-bg));
+  background-image: var(--ck-wallpaper,
+    radial-gradient(circle at 10px 12px, var(--ck-wall-ink) 0 1.6px, transparent 2.2px),
+    radial-gradient(circle at 42px 40px, transparent 0 5px, var(--ck-wall-ink) 5.6px 6.8px, transparent 7.4px),
+    radial-gradient(circle at 52px 10px, var(--ck-wall-ink) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 18px 50px, transparent 0 2.6px, var(--ck-wall-ink) 3.2px 4.2px, transparent 4.8px),
+    radial-gradient(circle at 34px 22px, var(--ck-wall-ink) 0 1.2px, transparent 1.8px));
+  background-size: var(--ck-wallpaper-size, 64px 64px);
+}
+.ck-look--messenger .ck-window__feed {
+  padding: 0 46px 0 6px;
+}
+
+/* Пастельные кружки: у каждого имени свой оттенок */
+.ck-look--messenger .ck-avatar,
+.ck-look--messenger .ck-avatar--active {
+  background: hsl(var(--ck-ava-h, 210) 72% 90%);
+  color: hsl(var(--ck-ava-h, 210) 42% 30%);
+  font-weight: 700;
+}
+:where([data-ck-theme="dark"]) .ck-look--messenger .ck-avatar {
+  background: hsl(var(--ck-ava-h, 210) 28% 24%);
+  color: hsl(var(--ck-ava-h, 210) 70% 82%);
+}
+
+/* ── Список ── */
+.ck-look--messenger .ck-list__head {
+  padding: 16px 16px 8px;
+  border-bottom: 0;
+}
+.ck-look--messenger .ck-list__title strong {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.ck-list__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ck-list__toggle {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+}
+.ck-list__toggle .ck-icon {
+  width: 19px;
+  height: 19px;
+}
+.ck-list__toggle--on::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ck-accent);
+}
+.ck-list__toggle:focus-within {
+  box-shadow: 0 0 0 2px var(--ck-accent-line);
+}
+.ck-list__head:has(.ck-list__toggle input:checked) .ck-list__toggle {
+  background: var(--ck-accent-soft);
+  color: var(--ck-accent-ink);
+}
+.ck-list__compose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--ck-accent);
+  color: var(--ck-on-accent);
+  box-shadow: 0 2px 8px var(--ck-glow);
+  text-decoration: none;
+}
+.ck-list__compose:hover {
+  background: var(--ck-accent-dark);
+}
+.ck-list__compose .ck-icon {
+  width: 19px;
+  height: 19px;
+}
+.ck-look--messenger .ck-list__filters {
+  display: none;
+}
+.ck-look--messenger .ck-list__head:has(.ck-list__toggle input:checked) .ck-list__filters {
+  display: block;
+}
+.ck-look--messenger .ck-search {
+  height: 40px;
+  margin-top: 12px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--ck-bg);
+  font-size: var(--ck-text-sm);
+}
+.ck-look--messenger .ck-search:focus {
+  border-color: var(--ck-accent-line);
+  background: var(--ck-surface);
+}
+.ck-look--messenger .ck-list__rows {
+  padding: 2px 8px 8px;
+}
+.ck-row--m {
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0;
+  padding: 10px;
+  border: 1.5px solid transparent;
+  border-radius: 16px;
+}
+.ck-row--m:hover {
+  background: var(--ck-surface-soft);
+}
+.ck-row--m[aria-current="true"] {
+  padding-left: 10px;
+  border: 1.5px solid var(--ck-accent);
+  background: var(--ck-accent-faint);
+}
+.ck-row--m .ck-row__top {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+.ck-row--m .ck-row__name {
+  min-width: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+.ck-row__chip {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--ck-bg);
+  color: var(--ck-sub);
+  font-size: var(--ck-text-xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ck-row__end {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+}
+.ck-row--m .ck-row__time {
+  font-family: inherit;
+  font-size: var(--ck-text-xs);
+}
+.ck-row--m .ck-row__time--unread {
+  color: var(--ck-accent-ink);
+  font-weight: 700;
+}
+.ck-row--m .ck-row__wait {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ck-accent-ink);
+  font-size: var(--ck-text-xs);
+  font-weight: 700;
+}
+.ck-row--m .ck-row__wait.ck-late {
+  color: var(--ck-red);
+}
+.ck-row--m .ck-row__wait .ck-icon {
+  width: 13px;
+  height: 13px;
+}
+.ck-row--m .ck-row__bottom {
+  gap: 6px;
+  margin-top: 3px;
+}
+.ck-row--m .ck-row__text {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+  font-size: 13px;
+}
+.ck-row--m .ck-row__who {
+  color: var(--ck-sub);
+}
+.ck-row__ico {
+  width: 15px;
+  height: 15px;
+  margin: -2px 4px 0 0;
+  color: var(--ck-muted);
+}
+.ck-row__ico--bot {
+  color: var(--ck-bot);
+}
+.ck-row--m .ck-tick .ck-icon {
+  width: 16px;
+  height: 16px;
+}
+.ck-row--m .ck-count {
+  min-width: 20px;
+  height: 20px;
+  background: var(--ck-accent);
+  font-family: inherit;
+}
+.ck-row--m .ck-count--wait {
+  background: var(--ck-red);
+}
+.ck-row--m .ck-row__sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-top: 4px;
+}
+.ck-row__subtext {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Шапка ── */
+.ck-look--messenger .ck-head {
+  min-height: 64px;
+  padding: 10px 20px;
+}
+.ck-look--messenger .ck-head__name {
+  font-size: 15px;
+  font-weight: 700;
+}
+.ck-head__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ck-head__title .ck-head__name {
+  min-width: 0;
+}
+.ck-look--messenger .ck-head__actions {
+  gap: 6px;
+}
+.ck-look--messenger .ck-head__actions .ck-iconbtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+}
+.ck-look--messenger .ck-head__actions .ck-iconbtn .ck-icon {
+  width: 19px;
+  height: 19px;
+}
+.ck-look--messenger .ck-head__actions .ck-side-toggle {
+  border-radius: 12px;
+  background: var(--ck-ink);
+  color: var(--ck-surface);
+}
+.ck-look--messenger .ck-head__actions .ck-side-toggle:hover,
+.ck-look--messenger .ck-head__actions .ck-side-toggle[aria-pressed="true"] {
+  background: var(--ck-accent);
+  color: var(--ck-on-accent);
+}
+
+/* Этап рядом с именем: «Новый ▾» */
+.ck-stage {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--ck-tone-line, var(--ck-line));
+  border-radius: 999px;
+  background: var(--ck-tone-soft, var(--ck-bg));
+  color: var(--ck-tone, var(--ck-sub));
+  font: inherit;
+  font-size: var(--ck-text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+span.ck-stage {
+  cursor: default;
+}
+.ck-stage .ck-icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* Переключатель бота: «ИИ-агент отвечает ●» / «ИИ-агент на паузе ○» */
+.ck-bottoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 5px 0 12px;
+  border: 1px solid var(--ck-line);
+  border-radius: 999px;
+  background: var(--ck-surface);
+  color: var(--ck-sub);
+  font: inherit;
+  font-size: var(--ck-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+.ck-bottoggle:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.ck-bottoggle--on {
+  border-color: var(--ck-bot-line);
+  background: var(--ck-bot-soft);
+  color: var(--ck-bot);
+}
+.ck-bottoggle--muted {
+  border-color: var(--ck-danger-line);
+  background: var(--ck-danger-soft);
+  color: var(--ck-danger);
+}
+.ck-bottoggle__track {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--ck-line-strong);
+  transition: background-color 0.15s;
+}
+.ck-bottoggle--on .ck-bottoggle__track {
+  background: var(--ck-bot);
+}
+.ck-bottoggle__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 25%);
+  transition: transform 0.15s;
+}
+.ck-bottoggle--on .ck-bottoggle__knob {
+  transform: translateX(14px);
+}
+.ck-bottoggle:focus-visible {
+  box-shadow: 0 0 0 3px var(--ck-accent-line);
+  outline: none;
+}
+
+/* Плашка «ИИ-агент передал чат вам · коротко · ждёт 13 мин» */
+.ck-banner {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--ck-line);
+  background: var(--ck-surface);
+}
+.ck-banner__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--ck-accent-soft);
+  color: var(--ck-accent-ink);
+}
+.ck-banner__icon .ck-icon {
+  width: 19px;
+  height: 19px;
+}
+.ck-banner__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.ck-banner__title {
+  color: var(--ck-ink);
+  font-size: var(--ck-text);
+}
+.ck-banner__brief {
+  overflow: hidden;
+  color: var(--ck-sub);
+  font-size: var(--ck-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ck-banner__wait {
+  flex: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--ck-accent);
+  color: var(--ck-on-accent);
+  font-size: var(--ck-text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ck-banner form {
+  flex: none;
+}
+.ck-banner__dismiss {
+  font-size: var(--ck-text-xs);
+  white-space: nowrap;
+}
+
+/* ── Лента ── */
+.ck-look--messenger .ck-day__label {
+  position: sticky;
+  top: 4px;
+  z-index: 1;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--ck-surface);
+  color: var(--ck-sub);
+  font-size: var(--ck-text-xs);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+}
+.ck-look--messenger .ck-msg {
+  padding: 8px 12px 6px;
+  border-color: transparent;
+  box-shadow: 0 1px 1.5px rgb(0 0 0 / 10%);
+}
+.ck-look--messenger .ck-msg--out {
+  border-color: var(--ck-out-line);
+}
+.ck-look--messenger .ck-msg--bot {
+  border-color: var(--ck-bot-bubble-line);
+}
+.ck-look--messenger .ck-msg__meta {
+  justify-content: flex-end;
+  margin-top: 2px;
+  font-family: inherit;
+}
+.ck-look--messenger .ck-chip-bot {
+  padding: 0;
+  background: none;
+  color: var(--ck-bot);
+  font-weight: 700;
+}
+.ck-look--messenger .ck-msg__head {
+  margin-bottom: 3px;
+}
+.ck-msg__ava {
+  display: none;
+}
+.ck-look--messenger .ck-msg__ava {
+  position: absolute;
+  right: -40px;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--ck-bot-line);
+  border-radius: 999px;
+  background: var(--ck-bot-soft);
+  color: var(--ck-bot);
+}
+.ck-look--messenger .ck-msg__ava .ck-icon {
+  width: 17px;
+  height: 17px;
+}
+.ck-look--messenger .ck-sys {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--ck-surface);
+  color: var(--ck-sub);
+  font-size: var(--ck-text-xs);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+}
+.ck-sys--handoff .ck-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ck-accent);
+}
+.ck-look--messenger .ck-note,
+.ck-look--messenger .ck-call {
+  box-shadow: 0 1px 1.5px rgb(0 0 0 / 8%);
+}
+.ck-look--messenger .ck-wave__bar {
+  background: var(--ck-accent-line);
+}
+.ck-look--messenger .ck-wave__bar--done {
+  background: var(--ck-voice);
+}
+.ck-transcript--inline {
+  display: block;
+  margin: 6px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ck-line);
+  color: var(--ck-body);
+  font-size: var(--ck-text-sm);
+  white-space: pre-line;
+}
+.ck-transcript__label {
+  color: var(--ck-ink);
+  font-weight: 700;
+}
+
+/* Оценка ответа бота — при наведении на сообщение, сбоку пузыря: лента не загромождается (как реакции в мессенджере) */
+@media (hover: hover) {
+  .ck-look--messenger .ck-msg--bot > .ck-msg__actions:has(> .ck-teach:only-child) {
+    position: absolute;
+    right: calc(100% + 10px);
+    bottom: 0;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s;
+  }
+  .ck-look--messenger .ck-msg--bot:hover > .ck-msg__actions:has(> .ck-teach:only-child),
+  .ck-look--messenger .ck-msg--bot > .ck-msg__actions:has(> .ck-teach:only-child):focus-within {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .ck-look--messenger .ck-msg--bot > .ck-msg__actions > .ck-teach:only-child {
+    flex-wrap: nowrap;
+    padding: 3px;
+    border: 1px solid var(--ck-line);
+    border-radius: 999px;
+    background: var(--ck-surface);
+    box-shadow: var(--ck-shadow);
+    white-space: nowrap;
+  }
+  .ck-look--messenger .ck-msg--bot > .ck-msg__actions > .ck-teach:only-child .ck-btn {
+    border-color: transparent;
+    border-radius: 999px;
+  }
+}
+
+/* ── Поле ввода ── */
+.ck-composer--m {
+  gap: 8px;
+}
+.ck-composer__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.ck-composer__row > .ck-field {
+  flex: 1;
+  min-width: 0;
+}
+.ck-look--messenger .ck-field {
+  padding: 4px 6px;
+  border-radius: 26px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+.ck-look--messenger .ck-field--email {
+  border-color: var(--ck-accent-line);
+}
+.ck-look--messenger .ck-field textarea {
+  padding: 9px 6px;
+}
+.ck-round[aria-pressed="true"] {
+  background: var(--ck-accent-soft);
+  color: var(--ck-accent-ink);
+}
+.ck-round--note[aria-pressed="true"] {
+  background: var(--ck-warn-soft);
+  color: var(--ck-warn);
+}
+.ck-sendbig {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ck-accent);
+  color: var(--ck-on-accent);
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+.ck-sendbig--ready {
+  box-shadow: 0 3px 10px var(--ck-glow);
+}
+.ck-sendbig:hover {
+  background: var(--ck-accent-dark);
+}
+.ck-sendbig--note {
+  background: var(--ck-warn);
+}
+.ck-sendbig .ck-icon {
+  width: 21px;
+  height: 21px;
+}
+.ck-look--messenger .ck-composer__bar:empty {
+  display: none;
+}
+
+/* Быстрые ответы кнопками над полем */
+.ck-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.ck-replies__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--ck-line);
+  border-radius: 999px;
+  background: var(--ck-surface);
+  color: var(--ck-ink);
+  font: inherit;
+  font-size: var(--ck-text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 1.5px rgb(0 0 0 / 7%);
+}
+.ck-replies__chip:hover,
+.ck-replies__chip[aria-expanded="true"] {
+  border-color: var(--ck-accent-line);
+  color: var(--ck-accent-ink);
+}
+.ck-replies__more .ck-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* «Черновик ответа от бота» — одной карточкой: «Вставить» (Tab) и крестик */
+.ck-draft--compact {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--ck-bot-line);
+  background: var(--ck-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+}
+.ck-draft__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--ck-bot-soft);
+  color: var(--ck-bot);
+}
+.ck-draft__main {
+  flex: 1;
+  min-width: 0;
+}
+.ck-draft--compact .ck-draft__text {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--ck-text-sm);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.ck-draft--compact .ck-draft__actions {
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+.ck-draft--compact .ck-link {
+  font-size: var(--ck-text-xs);
+  white-space: nowrap;
+}
+.ck-draft__insert {
+  border-color: var(--ck-bot-line);
+  color: var(--ck-bot);
+  font-weight: 600;
+}
+.ck-kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid var(--ck-line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--ck-surface-soft);
+  color: var(--ck-muted);
+  font-family: var(--ck-font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 15px;
+}
+
+/* Смайлики */
+.ck-emoji {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  width: 312px;
+  max-width: 100%;
+  max-height: none;
+  padding: 6px;
+}
+.ck-emoji__item {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ck-emoji__item:hover {
+  background: var(--ck-bg);
+}
+
+/* ── Панель диалога сбоку ── */
+.ck-side {
+  flex: none;
+  width: 340px;
+  min-height: 0;
+  border-left: 1px solid var(--ck-line);
+  background: var(--ck-surface);
+  overflow-y: auto;
+}
+.ck-look--messenger .ck-window__side {
+  display: block;
+  padding: 0;
+}
+.ck-side__head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ck-line);
+  background: var(--ck-surface);
+}
+.ck-side__head strong {
+  font-size: var(--ck-text-lg);
+}
+.ck-side__section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ck-line-soft);
+}
+.ck-side__title {
+  margin: 0 0 10px;
+  color: var(--ck-muted);
+  font-size: var(--ck-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ck-side__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ck-side .ck-summary {
+  margin: 10px 0 0;
+}
+.ck-side .ck-strip {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.ck-side .ck-strip__right {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  margin-left: 0;
+}
+.ck-side .ck-pop--right {
+  right: auto;
+  left: 0;
+}
+.ck-side .ck-botbar {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+.ck-side .ck-memory {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+@media (max-width: 1279.98px) {
+  .ck-look--messenger .ck-window__side {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    box-shadow: var(--ck-shadow);
+  }
+}
+@media (max-width: 767.98px) {
+  .ck-look--messenger .ck-window__side {
+    width: 100%;
+  }
+  .ck-look--messenger .ck-window__list {
+    width: 100%;
+  }
+  .ck-look--messenger .ck-window__body {
+    padding: 10px 12px;
+  }
+  .ck-look--messenger .ck-window__feed {
+    padding-right: 40px;
+  }
+  .ck-look--messenger .ck-bottoggle__label {
+    display: none;
+  }
+  .ck-look--messenger .ck-bottoggle {
+    padding-left: 5px;
+  }
+  /* Плашка: заголовок и пересказ — первой строкой, «ждёт» и «Ответ не нужен» — второй */
+  .ck-banner {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    padding: 8px 12px;
+  }
+  .ck-banner__body {
+    flex-basis: calc(100% - 48px);
+  }
+  .ck-banner__wait {
+    margin-left: 48px;
+  }
+  .ck-banner form {
+    margin-left: auto;
+  }
+  /* Черновик: кнопки — строкой под текстом */
+  .ck-draft--compact {
+    flex-wrap: wrap;
+  }
+  .ck-draft--compact .ck-draft__main {
+    flex-basis: calc(100% - 44px);
+  }
+  .ck-draft--compact .ck-draft__actions {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+  /* Быстрые ответы — одной строкой с прокруткой вбок */
+  .ck-replies {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ck-replies::-webkit-scrollbar {
+    display: none;
+  }
+  /* Поле: кнопки поменьше, смайлики — с клавиатуры телефона */
+  .ck-look--messenger .ck-field .ck-round {
+    width: 32px;
+    height: 32px;
+  }
+  .ck-look--messenger .ck-field .ck-round--emoji {
+    display: none;
+  }
+  .ck-sendbig {
+    width: 44px;
+    height: 44px;
+  }
+  .ck-look--messenger .ck-field textarea::placeholder {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+/* Без клавиатуры — без подсказки «Tab» */
+@media (hover: none) {
+  .ck-kbd {
+    display: none;
+  }
+}
+.ck-side__tools .ck-btn {
+  border: 1px solid var(--ck-line);
+  border-radius: 999px;
+  background: var(--ck-surface);
+}

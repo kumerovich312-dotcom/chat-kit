@@ -7,19 +7,28 @@ import { ChevronIcon, TextIcon } from "./icons.js";
 
 /* Текст голосового и записи звонка. Есть расшифровка — показываем её (свернуть можно); нет — кнопка «Расшифровать»:
    действие проекта (форма message_id, attachment_id) отдаёт текст через «розетку ИИ», проект сохраняет его у файла,
-   и в следующий раз он придёт готовым (Attachment.transcript). Текст ищется поиском по переписке (data-find). */
+   и в следующий раз он придёт готовым (Attachment.transcript). Текст ищется поиском по переписке (data-find).
+   inline — вид «Мессенджер»: «Расшифровка: …» прямо в пузыре под чертой, без сворачивания. */
 
-export function Transcript({ messageId, attachmentId, text, action, t = DEFAULT_TEXTS }: {
+export function Transcript({ messageId, attachmentId, text, action, inline = false, t = DEFAULT_TEXTS }: {
   messageId: string;
   attachmentId: string;
   text?: string | null | undefined;
   action?: ((form: FormData) => Promise<AiAnswer>) | undefined;
-  t?: Pick<Texts, "transcribe" | "transcript"> | undefined;
+  inline?: boolean | undefined;
+  t?: Pick<Texts, "transcribe" | "transcript" | "transcriptLabel"> | undefined;
 }) {
   const [value, setValue] = useState<string | null>(text?.trim() || null);
   const [open, setOpen] = useState(true);
   const [error, setError] = useState("");
   const [busy, start] = useTransition();
+  if (value && inline) {
+    return (
+      <div className="ck-transcript ck-transcript--inline">
+        <span className="ck-transcript__label">{t.transcriptLabel}:</span> <span data-find="">{value}</span>
+      </div>
+    );
+  }
   if (value) {
     return (
       <div className="ck-transcript">
@@ -45,7 +54,7 @@ export function Transcript({ messageId, attachmentId, text, action, t = DEFAULT_
     }
   });
   return (
-    <div className="ck-transcript">
+    <div className={`ck-transcript${inline ? " ck-transcript--inline" : ""}`}>
       <button type="button" className="ck-btn ck-btn--sm ck-btn--ghost" disabled={busy} onClick={run}>
         <TextIcon /> {busy ? "Расшифровываю…" : t.transcribe}
       </button>

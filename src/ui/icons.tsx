@@ -292,3 +292,86 @@ export const MoneyIcon = (p: IconProps) => (
     <path {...line} d="M7 9.5v0M17 14.5v0" />
   </Svg>
 );
+
+/* Вид «Мессенджер» */
+
+/** Ладонь — «бот передал чат» */
+export const HandIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M8 13v-7.5a1.5 1.5 0 0 1 3 0v6.5" />
+    <path {...line} d="M11 5.5v-2a1.5 1.5 0 0 1 3 0v8.5" />
+    <path {...line} d="M14 5.5a1.5 1.5 0 0 1 3 0v6.5" />
+    <path {...line} d="M17 7.5a1.5 1.5 0 0 1 3 0v8.5a6 6 0 0 1 -6 6h-2h.2a6 6 0 0 1 -5 -2.7l-.2 -.3c-.3 -.5 -1.4 -2.4 -3.2 -5.6a1.5 1.5 0 0 1 .5 -2a1.9 1.9 0 0 1 2.3 .3l1.4 1.3" />
+  </Svg>
+);
+
+/** Смайлик — вставить эмодзи */
+export const SmileIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle {...line} cx="12" cy="12" r="9" />
+    <path {...line} d="M9 10h.01M15 10h.01" />
+    <path {...line} d="M9.5 15a3.5 3.5 0 0 0 5 0" />
+  </Svg>
+);
+
+/** Ползунки — фильтры списка */
+export const SlidersIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+    <circle {...line} cx="15" cy="6" r="2" />
+    <circle {...line} cx="9" cy="12" r="2" />
+    <circle {...line} cx="17" cy="18" r="2" />
+  </Svg>
+);
+
+/** Окно с полосой справа — панель диалога */
+export const PanelIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+    <path {...line} d="M14.5 4.5v15" />
+  </Svg>
+);
+
+/** Голова робота — ответ бота */
+export const BotIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="5" y="8" width="14" height="11" rx="3" />
+    <path {...line} d="M12 8v-3M10.5 4h3" />
+    <path {...line} d="M9.5 13h.01M14.5 13h.01" />
+    <path {...line} d="M10 16.5h4M3 13v2M21 13v2" />
+  </Svg>
+);
+
+/** Конверт — письмо */
+export const MailIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="3.5" y="5.5" width="17" height="13" rx="2" />
+    <path {...line} d="M4 7l8 6l8 -6" />
+  </Svg>
+);
+
+/** Листок с загнутым углом — заметка для команды */
+export const NoteIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M13 20h-7a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v7z" />
+    <path {...line} d="M13 20v-5a2 2 0 0 1 2 -2h5" />
+    <path {...line} d="M8 9h8M8 13h3" />
+  </Svg>
+);
+
+/** Карандаш в квадрате — написать новому */
+export const ComposeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path {...line} d="M11 5h-4a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-4" />
+    <path {...line} d="M10 14h3l7.5 -7.5a2.1 2.1 0 0 0 -3 -3l-7.5 7.5z" />
+  </Svg>
+);
+
+/** Фото — значок в строке списка */
+export const PhotoIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect {...line} x="3.5" y="5" width="17" height="14" rx="2.5" />
+    <circle {...line} cx="9" cy="10" r="1.6" />
+    <path {...line} d="M4 17l4.5 -4.5a1.5 1.5 0 0 1 2 0l5.5 5.5M14 15l1.5 -1.5a1.5 1.5 0 0 1 2 0l3 3" />
+  </Svg>
+);

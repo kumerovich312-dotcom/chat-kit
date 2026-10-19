@@ -5,7 +5,7 @@ import type { BotState } from "../core/conversation.js";
 import { botStateText } from "../core/conversation.js";
 import { DEFAULT_TEXTS, fill, type Texts } from "../core/profile.js";
 import { untilText } from "../core/time.js";
-import { MuteIcon, PauseIcon, PencilIcon, PlayIcon, SparkIcon, ThumbIcon } from "./icons.js";
+import { CloseIcon, MuteIcon, PauseIcon, PencilIcon, PlayIcon, SparkIcon, ThumbIcon } from "./icons.js";
 
 /* Места для студии в окне переписки (план студии 10.5 и 4.4; решения пользователя 27.09.2026). Все действия — формы:
    годятся и серверному действию Next.js, и обычной функции.
@@ -16,7 +16,9 @@ import { MuteIcon, PauseIcon, PencilIcon, PlayIcon, SparkIcon, ThumbIcon } from 
    - BotFeedback — оценка ответа бота «хорошо / как надо было / опасно» с причиной и правильным ответом — на этом бот
      учится. Видна владельцу сразу, менеджерам — когда владелец даст доступ (решает проект: передаёт действие или нет);
    - TeachExample — «Сделать примером для бота» у ответа менеджера: хороший ответ уходит в студию на одобрение;
-   - BotMemory — что бот знает о клиенте (профессия, страна, сроки, бюджет): можно поправить и удалить. */
+   - BotMemory — что бот знает о клиенте (профессия, страна, сроки, бюджет): можно поправить и удалить;
+   - BotToggle — вид «Мессенджер»: переключатель «ИИ-агент отвечает / на паузе» в шапке; «не отвечать этому клиенту» —
+     в панели диалога (BotControls variant="bar"). */
 
 type FormAction = (form: FormData) => void | Promise<void>;
 
@@ -89,15 +91,73 @@ export function BotControls({ state, action, variant = "header", timeZone, t = D
   );
 }
 
-/** «Второй пилот»: ответ, который предлагает бот. Менеджер вставляет его в поле (и правит) или отправляет как есть */
-export function BotDraft({ text, onInsert, sendAction, onHide, title = "Бот предлагает ответ" }: {
+/** Переключатель бота в шапке (вид «Мессенджер»): включён — бот отвечает сам, выключен — на паузе, отвечает человек.
+ *  Та же форма, что у BotControls: command (pause / resume / unmute), hours */
+export function BotToggle({ state, action, timeZone, t = DEFAULT_TEXTS }: {
+  state: BotState;
+  action: FormAction;
+  timeZone?: string | undefined;
+  t?: Texts | undefined;
+}) {
+  const [busy, start] = useTransition();
+  const [mode, setMode] = useState(state.mode);
+  const [seen, setSeen] = useState(state.mode);
+  // Пришло новое состояние с сервера — берём его
+  if (seen !== state.mode) { setSeen(state.mode); setMode(state.mode); }
+  const on = mode === "bot";
+  const muted = mode === "muted";
+  const canPause = state.canPause ?? true;
+  const label = muted ? t.botOffMuted : on ? (state.handoff === "requested" ? t.botCalled : t.botOn)
+    : state.pausedUntil ? `${t.botOff} до ${untilText(state.pausedUntil, timeZone)}` : t.botOff;
+  const title = muted ? t.botUnmuteTitle : on ? t.botPauseTitle : t.botResumeTitle;
+  const flip = () => start(async () => {
+    const command = muted ? "unmute" : on ? "pause" : "resume";
+    setMode(on ? "manager" : "bot");
+    const fd = new FormData();
+    fd.set("command", command);
+    if (command === "pause") fd.set("hours", "12");
+    try { await action(fd); } catch { setMode(state.mode); }
+  });
+  return (
+    <button type="button" role="switch" aria-checked={on} className={`ck-bottoggle${on ? " ck-bottoggle--on" : ""}${muted ? " ck-bottoggle--muted" : ""}`}
+      disabled={busy || (!canPause && !muted)} title={state.reason ? `${title} — ${state.reason}` : title} onClick={flip}>
+      <span className="ck-bottoggle__label">{label}</span>
+      <span className="ck-bottoggle__track" aria-hidden="true"><span className="ck-bottoggle__knob" /></span>
+    </button>
+  );
+}
+
+/** «Второй пилот»: ответ, который предлагает бот. Менеджер вставляет его в поле (и правит) или отправляет как есть.
+ *  compact — вид «Мессенджер»: «Черновик ответа» одной карточкой, «Вставить» (Tab в пустом поле) и крестик */
+export function BotDraft({ text, onInsert, sendAction, onHide, title = "Бот предлагает ответ", compact = false, t = DEFAULT_TEXTS }: {
   text: string;
   onInsert: (text: string) => void;
   sendAction?: FormAction | undefined;
   onHide?: (() => void) | undefined;
   title?: string | undefined;
+  compact?: boolean | undefined;
+  t?: Pick<Texts, "draftInsert" | "draftSend"> | undefined;
 }) {
   const [busy, start] = useTransition();
+  const sendNow = () => start(async () => { if (!sendAction) return; const fd = new FormData(); fd.set("text", text); fd.set("mode", "send"); await sendAction(fd); });
+  if (compact) {
+    return (
+      <div className="ck-draft ck-draft--compact" role="note">
+        <span className="ck-draft__icon" aria-hidden="true"><SparkIcon /></span>
+        <div className="ck-draft__main">
+          <div className="ck-draft__head">{title}</div>
+          <div className="ck-draft__text">{text}</div>
+        </div>
+        <div className="ck-draft__actions">
+          {sendAction ? <button type="button" className="ck-link" disabled={busy} onClick={sendNow}>{t.draftSend}</button> : null}
+          <button type="button" className="ck-btn ck-btn--sm ck-draft__insert" onClick={() => onInsert(text)}>
+            {t.draftInsert} <kbd className="ck-kbd">Tab</kbd>
+          </button>
+          {onHide ? <button type="button" className="ck-iconbtn" aria-label="Скрыть черновик" onClick={onHide}><CloseIcon /></button> : null}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="ck-draft" role="note">
       <div className="ck-draft__head"><SparkIcon /> {title}</div>
@@ -105,7 +165,7 @@ export function BotDraft({ text, onInsert, sendAction, onHide, title = "Бот �
       <div className="ck-draft__actions">
         <button type="button" className="ck-btn ck-btn--sm ck-btn--bot" onClick={() => onInsert(text)}><PencilIcon /> Вставить в поле</button>
         {sendAction ? (
-          <button type="button" className="ck-btn ck-btn--sm" disabled={busy} onClick={() => start(async () => { const fd = new FormData(); fd.set("text", text); fd.set("mode", "send"); await sendAction(fd); })}>
+          <button type="button" className="ck-btn ck-btn--sm" disabled={busy} onClick={sendNow}>
             Отправить как есть
           </button>
         ) : null}
