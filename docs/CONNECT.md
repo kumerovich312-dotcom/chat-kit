@@ -8,7 +8,7 @@
 Набор ставится готовым файлом выпуска с GitHub (открытый репозиторий):
 
 ```bash
-npm install https://github.com/kumerovich312-dotcom/chat-kit/releases/download/vX.Y.Z/muras-chat-kit-X.Y.Z.tgz
+npm install https://github.com/kumerovich312-dotcom/chat-kit/releases/download/v0.1.0/muras-chat-kit-0.1.0.tgz
 ```
 
 В `package-lock.json` запишется отпечаток файла — `npm ci` на сервере скачает его по HTTPS без ключей и без git и

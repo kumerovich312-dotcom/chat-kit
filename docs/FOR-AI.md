@@ -33,7 +33,7 @@
 ## Шаг 1. Поставить набор
 
 ```bash
-npm install https://github.com/kumerovich312-dotcom/chat-kit/releases/download/vX.Y.Z/muras-chat-kit-X.Y.Z.tgz
+npm install https://github.com/kumerovich312-dotcom/chat-kit/releases/download/v0.1.0/muras-chat-kit-0.1.0.tgz
 ```
 
 Номер версии — последний из CHANGELOG. В корневой `app/layout.tsx`: `import "@muras/chat-kit/styles.css";`.
