@@ -179,13 +179,21 @@ export function VoicePlayer({ id, src, sizeLabel, downloadHref }: VoicePlayerPro
         onPause={() => { setPlaying(false); cancelAnimationFrame(raf.current); }}
         onEnded={() => { setPlaying(false); cancelAnimationFrame(raf.current); setPos(0); if (audio.current) audio.current.currentTime = 0; }}
         onLoadedMetadata={(e) => {
+          // Длина для точки и перемотки — та, по которой играет сам браузер. Разбор файла для волны в некоторых
+          // браузерах даёт другую: Opera с декодером Windows считает MP3 48 кГц как 44,1 кГц (1:15 вместо 1:22),
+          // и точка доезжала до конца раньше голоса
           const d = e.currentTarget.duration;
-          if (Number.isFinite(d) && d > 0 && !dur) setDur(d);
+          if (Number.isFinite(d) && d > 0) setDur(d);
           if (seekTo.current !== null) {
             const len = Number.isFinite(d) && d > 0 ? d : dur;
             e.currentTarget.currentTime = seekTo.current * len;
             seekTo.current = null;
           }
+        }}
+        onDurationChange={(e) => {
+          // браузер уточнил длину по ходу воспроизведения — точка идёт по ней же
+          const d = e.currentTarget.duration;
+          if (Number.isFinite(d) && d > 0) setDur(d);
         }}
         onError={() => setFailed(true)}
       />
