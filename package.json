@@ -1,6 +1,6 @@
 {
   "name": "@muras/chat-kit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Нейтральная основа переписки с клиентами: окно переписки (React), ядро без базы, подключения каналов",
   "private": true,
   "license": "UNLICENSED",
