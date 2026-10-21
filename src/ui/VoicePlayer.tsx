@@ -95,7 +95,10 @@ export function VoicePlayer({ id, src, sizeLabel, downloadHref }: VoicePlayerPro
         if (!alive) return;
         if (!w) { setFailed(true); return; }
         setWave(w);
-        if (w.duration) setDur(w.duration);
+        // Длина из разбора — только пока браузер свою не знает: нажали «слушать» до того, как волна дорисовалась, —
+        // верная длина браузера уже пришла, разбор её не затирает
+        const known = audio.current?.duration;
+        if (w.duration && !(known !== undefined && Number.isFinite(known) && known > 0)) setDur(w.duration);
       });
     };
     if (typeof IntersectionObserver === "undefined") { start(); return () => { alive = false; }; }
