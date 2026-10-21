@@ -9,5 +9,8 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["tests/setup.ts"],
     testTimeout: 20_000,
+    // Не больше двух файлов разом: проверки с Postgres в памяти (PGlite) тяжёлые, и при нехватке памяти процесс
+    // проверок падал целиком (выпуск 0.2.0, 21.10.2026)
+    maxWorkers: 2,
   },
 });
