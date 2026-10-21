@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { VoicePlayer } from "../../src/ui/VoicePlayer.js";
 
@@ -63,6 +64,24 @@ describe("VoicePlayer", () => {
     await act(async () => { finish({ duration: 75, getChannelData: () => new Float32Array(4410) }); await Promise.resolve(); });
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
     expect(slider.getAttribute("aria-valuemax")).toBe("82");
+  });
+
+  it("полоски волны стоят на всю её ширину — закраска доходит до точки, а не отстаёт от неё", () => {
+    // Точка едет по всей ширине волны (left: f * 100%). Раньше 36 полосок стояли слева (около 178 px из 294),
+    // и точка обгоняла закраску почти на треть
+    const css = readFileSync("src/ui/styles.css", "utf8");
+    const rule = /\.ck-wave \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(rule).toMatch(/justify-content:\s*space-between/);
+    // Расклад «полоски на всю ширину»: последняя закрашенная полоска кончается не дальше шага одной полоски от точки
+    const BARS = 36, BAR = 3;
+    for (const width of [178, 250, 294, 420]) {
+      const step = (width - BAR) / (BARS - 1);
+      for (let f = 0.05; f < 1; f += 0.05) {
+        const done = Array.from({ length: BARS }, (_, i) => i).filter((i) => (i + 0.5) / BARS <= f);
+        const end = done.length ? done.at(-1)! * step + BAR : 0;
+        expect(Math.abs(f * width - end)).toBeLessThanOrEqual(step + BAR);
+      }
+    }
   });
 
   it("бесконечная или пустая длина браузера не затирает длину из разбора", async () => {

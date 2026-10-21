@@ -692,6 +692,9 @@
   position: relative;
   display: flex;
   align-items: center;
+  /* Полоски — на всю ширину волны: точка едет по всей ширине, и закрашенные полоски должны доходить до неё
+     (раньше полоски стояли слева, и точка обгоняла закраску почти на треть) */
+  justify-content: space-between;
   gap: 2px;
   height: 28px;
   border-radius: 4px;
